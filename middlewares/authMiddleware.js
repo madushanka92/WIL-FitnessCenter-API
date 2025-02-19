@@ -1,7 +1,7 @@
 import JWT from "jsonwebtoken";
 import userModel from "../models/User.js";
 
-//protected route token base--
+// Protected route token-based authentication
 export const requireSignIn = async (req, res, next) => {
   try {
     const decode = JWT.verify(
@@ -11,28 +11,29 @@ export const requireSignIn = async (req, res, next) => {
     req.user = decode;
     next();
   } catch (error) {
-    console.log(error);
+    console.error("JWT Verification Error:", error);
+    res
+      .status(401)
+      .send({ success: false, message: "Invalid or Expired Token" });
   }
 };
 
-//accessing admin view
+// Admin access control
 export const isAdmin = async (req, res, next) => {
   try {
     const user = await userModel.findById(req.user._id);
-    if (user.role !== "admin") {
-      return res.status(401).send({
+    if (!user || user.role !== "admin") {
+      return res.status(403).send({
         success: false,
-        message: "UnAuthorized Access to The Page!",
+        message: "Unauthorized Access!",
       });
-    } else {
-      next();
     }
+    next();
   } catch (error) {
-    console.log(error);
-    res.status(401).send({
+    console.error("Admin Middleware Error:", error);
+    res.status(500).send({
       success: false,
-      error,
-      message: "Something Wrong Happened in Admin Middleware!",
+      message: "Internal Server Error in Admin Middleware",
     });
   }
 };

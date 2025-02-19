@@ -3,16 +3,17 @@ import {
   registerController,
   loginController,
   testController,
+  verifyEmailController,
 } from "../controllers/authController.js";
 import { isAdmin, requireSignIn } from "../middlewares/authMiddleware.js";
-//router object
+
+// Router object
 const router = express.Router();
-//routing
-//REGISTER || METHOD POST
+
+// Routes
 router.post("/register", registerController);
-//LOGIN || METHOD POST
 router.post("/login", loginController);
-//TEST || METHOD GET
+router.get("/verify-email/:token", verifyEmailController);
 router.get("/test", requireSignIn, isAdmin, testController);
 
 export default router;

@@ -9,6 +9,7 @@ lerna-debug.log*
 
 node_modules
 *.local
+secret_key.js
 
 # Editor directories and files
 .vscode/*
