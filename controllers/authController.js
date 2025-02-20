@@ -8,7 +8,7 @@ import EMAILKEY from "../secret_key.js";
 dotenv.config();
 
 // SendGrid API key
-const sendGridApiKey = EMAILKEY;
+const sendGridApiKey = "EMAILKEY";
 const transporter = nodemailer.createTransport({
   host: "smtp.sendgrid.net",
   port: 587,
