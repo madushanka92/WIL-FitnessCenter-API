@@ -31,10 +31,10 @@ const UserSchema = new Schema({
     ref: "Membership",
     default: null,
   },
-  role: {
-    type: String,
-    enum: ["admin", "trainer", "member"],
-    default: "member",
+  role_id: {
+    type: Schema.Types.ObjectId,
+    ref: "UserRole",
+    default: null,
   },
   created_at: {
     type: Date,
