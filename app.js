@@ -18,7 +18,7 @@ app.use(cors());
 connectDB();
 //middlewares
 app.use(express.json());
-app.use("/api", routes); //---
+app.use("/api/v1/", routes); //---
 
 //routes
 app.use("/api/v1/auth", authRoutes); //------------------Fix the Route Later!!!
