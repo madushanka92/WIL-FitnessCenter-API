@@ -2,9 +2,9 @@ import User from "../models/User.js";
 import JWT from "jsonwebtoken";
 import { hashPassword } from "../helpers/authHelper.js";
 import nodemailer from "nodemailer";
-import PASSKEY from "../secret_key.js";
+import SecretKeys from "../secret_key.js";
 
-const sendGridApiKey = PASSKEY; // SendGrid API key
+const sendGridApiKey = SecretKeys.PASSKEY; // SendGrid API key
 const transporter = nodemailer.createTransport({
   host: "smtp.sendgrid.net", // SendGrid SMTP host
   port: 587, // SMTP port

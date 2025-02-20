@@ -3,12 +3,12 @@ import { comparePassword, hashPassword } from "../helpers/authHelper.js";
 import JWT from "jsonwebtoken";
 import nodemailer from "nodemailer";
 import dotenv from "dotenv";
-import EMAILKEY from "../secret_key.js";
+import SecretKeys from "../secret_key.js";
 
 dotenv.config();
 
 // SendGrid API key
-const sendGridApiKey = "EMAILKEY";
+const sendGridApiKey = SecretKeys.EMAILKEY;
 const transporter = nodemailer.createTransport({
   host: "smtp.sendgrid.net",
   port: 587,
@@ -57,7 +57,6 @@ export const registerController = async (req, res) => {
       verificationToken,
       verificationTokenExpires: Date.now() + 3600000,
     });
-    await newUser.save();
 
     const verificationLink = `${process.env.FRONTEND_URL}/verify-email/${verificationToken}`;
     const mailOptions = {
@@ -67,6 +66,7 @@ export const registerController = async (req, res) => {
       text: `Please click the link below to verify your email:\n\n${verificationLink}\n\nThis link expires in 1 hour.`,
     };
     await transporter.sendMail(mailOptions);
+    await newUser.save();
 
     res.status(201).json({
       success: true,
