@@ -4,26 +4,33 @@ import { hashPassword } from "../helpers/authHelper.js";
 import nodemailer from "nodemailer";
 import SecretKeys from "../secret_key.js";
 
+// Configure SendGrid SMTP Transport
 const sendGridApiKey = SecretKeys.PASSKEY; // SendGrid API key
 const transporter = nodemailer.createTransport({
-  host: "smtp.sendgrid.net", // SendGrid SMTP host
-  port: 587, // SMTP port
+  host: "smtp.sendgrid.net",
+  port: 587,
   auth: {
-    user: "apikey", // Use 'apikey' as the username
+    user: "apikey",
     pass: sendGridApiKey,
   },
 });
 
-// Request Password Reset
+/**
+ * Handles user password reset request by generating a reset token
+ * and sending a reset email with a reset link.
+ */
 export const requestPasswordReset = async (req, res) => {
   try {
     const { email } = req.body;
+
+    // Validate email input
     if (!email) {
       return res
         .status(400)
         .json({ success: false, message: "Email is required" });
     }
 
+    // Check if user exists in the database
     const user = await User.findOne({ email });
     if (!user) {
       return res
@@ -31,29 +38,33 @@ export const requestPasswordReset = async (req, res) => {
         .json({ success: false, message: "User not found" });
     }
 
-    // Generate Reset Token (valid for 1 hour)
+    // Generate a password reset token valid for 1 hour
     const token = JWT.sign({ _id: user._id }, process.env.JWT_SECRET, {
       expiresIn: "1h",
     });
 
-    // Store the reset token
+    // Store the reset token and expiration time in the database
     user.resetPasswordToken = token;
-    user.resetPasswordExpires = Date.now() + 3600000; // 1 hour expiry
+    user.resetPasswordExpires = Date.now() + 3600000; // Expires in 1 hour
     await user.save();
 
-    // Reset Link
-    const resetLink = `${process.env.FRONTEND_URL}/reset-password/${token}`; //!!!!!!!!!! change frontend url in .env
-    const resetToken = `${token}`;
-    console.log(`Password Reset Token: ${resetToken}`); // Debugging
+    // Construct the password reset link
+    const resetLink = `${process.env.FRONTEND_URL}/reset-password/${token}`;
+    console.log(`Password Reset Token: ${token}`); // Debugging purpose
 
-    // Send Email
+    // Define email options for sending the reset email
     const mailOptions = {
-      from: "melbin.study@gmail.com", // Sender Mail
+      from: "melbin.study@gmail.com", // Sender email address
       to: email,
       subject: "Password Reset Request",
-      text: `You requested a password reset. Click the link below to reset your password:\n\n${resetLink}\n\nThis link expires in 1 hour.`,
+      text: `You requested a password reset. Click the link below to reset your password:
+      
+      ${resetLink}
+      
+      This link expires in 1 hour.`,
     };
 
+    // Send the password reset email
     await transporter.sendMail(mailOptions);
 
     res
@@ -68,23 +79,30 @@ export const requestPasswordReset = async (req, res) => {
     });
   }
 };
-// Reset Password
+
+/**
+ * Handles resetting a user's password after verifying the reset token.
+ */
 export const resetPassword = async (req, res) => {
   try {
-    const { token } = req.params;
-    const { newPassword } = req.body;
+    const { token } = req.params; // Get token from request parameters
+    const { newPassword } = req.body; // Get new password from request body
 
+    // Validate input parameters
     if (!token || !newPassword) {
-      return res.status(400).json({
-        success: false,
-        message: "Token and new password are required",
-      });
+      return res
+        .status(400)
+        .json({
+          success: false,
+          message: "Token and new password are required",
+        });
     }
 
-    // Verify Token
+    // Verify the reset token
     const decoded = JWT.verify(token, process.env.JWT_SECRET);
     const user = await User.findById(decoded._id);
 
+    // Validate the token and check expiration
     if (
       !user ||
       user.resetPasswordToken !== token ||
@@ -95,10 +113,10 @@ export const resetPassword = async (req, res) => {
         .json({ success: false, message: "Invalid or expired reset token" });
     }
 
-    // Update Password
+    // Hash the new password and update user record
     user.password_hash = await hashPassword(newPassword);
-    user.resetPasswordToken = undefined;
-    user.resetPasswordExpires = undefined;
+    user.resetPasswordToken = undefined; // Clear reset token
+    user.resetPasswordExpires = undefined; // Clear token expiration
     await user.save();
 
     res
