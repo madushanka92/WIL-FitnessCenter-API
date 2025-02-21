@@ -1,0 +1,215 @@
+{
+	"info": {
+		"_postman_id": "d325d2ee-fd70-4612-8e2d-89b7c0482abf",
+		"name": "FItness App",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "39607671"
+	},
+	"item": [
+		{
+			"name": "Fitness_Registration",
+			"request": {
+				"auth": {
+					"type": "noauth"
+				},
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"first_name\":\"Temp\",\n    \"last_name\":\"User\",\n    \"email\":\"User@gmail.com\",\n    \"password_hash\":\"1234567\",\n    \"phone_number\":\"3248906661\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:3030/api/v1/auth/register",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "3030",
+					"path": [
+						"api",
+						"v1",
+						"auth",
+						"register"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Fitness_Login",
+			"request": {
+				"auth": {
+					"type": "noauth"
+				},
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"email\":\"User@gmail.com\",\n    \"password_hash\":\"1234567\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:3030/api/v1/auth/login",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "3030",
+					"path": [
+						"api",
+						"v1",
+						"auth",
+						"login"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Protected_Route_Tests",
+			"protocolProfileBehavior": {
+				"disableBodyPruning": true
+			},
+			"request": {
+				"auth": {
+					"type": "noauth"
+				},
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiI2N2IxNTYzMjQxZmM2NDMyYjA2NGJhMjIiLCJpYXQiOjE3Mzk3MjQxNjgsImV4cCI6MTc0MDMyODk2OH0.q9EFmX0HAYUv1FNUT_f6Y4Qd9HpF_3ppfslnnFK_SVc",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:3030/api/v1/auth/test",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "3030",
+					"path": [
+						"api",
+						"v1",
+						"auth",
+						"test"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Password_Reset_Request_FORGOT",
+			"request": {
+				"auth": {
+					"type": "noauth"
+				},
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n  \"email\": \"melbintomy40@gmail.com\"\n}\n",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:3030/api/password/request-password-reset",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "3030",
+					"path": [
+						"api",
+						"password",
+						"request-password-reset"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Reset_Password_Link",
+			"request": {
+				"auth": {
+					"type": "noauth"
+				},
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"newPassword\":\"123\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://localhost:3030/api/password/reset-password/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiI2N2IzNjc3YzQ3NWIzNmJkMWE3MDIxOTgiLCJpYXQiOjE3Mzk4MTYwNTIsImV4cCI6MTczOTgxOTY1Mn0.uXOR4wayQBHYizG72vJB4VNi3uGvSFLQJo2wVIjwDiQ",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "3030",
+					"path": [
+						"api",
+						"password",
+						"reset-password",
+						"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJfaWQiOiI2N2IzNjc3YzQ3NWIzNmJkMWE3MDIxOTgiLCJpYXQiOjE3Mzk4MTYwNTIsImV4cCI6MTczOTgxOTY1Mn0.uXOR4wayQBHYizG72vJB4VNi3uGvSFLQJo2wVIjwDiQ"
+					]
+				},
+				"description": "change token after reset-password/"
+			},
+			"response": []
+		},
+		{
+			"name": "Email_Verification_Fitness",
+			"request": {
+				"auth": {
+					"type": "noauth"
+				},
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:3030/api/v1/auth/verify-email/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6Im1lbGJpbnRvbXkyMDI0QGdtYWlsLmNvbSIsImlhdCI6MTczOTk5MjMxMywiZXhwIjoxNzM5OTk1OTEzfQ.XkYpyMFJXSlOEkbCn-eMuSXWgJCPrLHYT-XOcdRzUYo",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "3030",
+					"path": [
+						"api",
+						"v1",
+						"auth",
+						"verify-email",
+						"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6Im1lbGJpbnRvbXkyMDI0QGdtYWlsLmNvbSIsImlhdCI6MTczOTk5MjMxMywiZXhwIjoxNzM5OTk1OTEzfQ.XkYpyMFJXSlOEkbCn-eMuSXWgJCPrLHYT-XOcdRzUYo"
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}

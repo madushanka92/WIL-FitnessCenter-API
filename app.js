@@ -18,11 +18,6 @@ app.use(cors());
 connectDB();
 //middlewares
 app.use(express.json());
-app.use("/api/v1/", routes); //---
-
-//routes
-app.use("/api/v1/auth", authRoutes); //------------------Fix the Route Later!!!
-
-app.use("/api/password", passwordResetRouter);
+app.use("/api/v1", routes);
 
 export default app;
