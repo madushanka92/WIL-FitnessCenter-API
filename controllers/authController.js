@@ -4,6 +4,7 @@ import JWT from "jsonwebtoken";
 import nodemailer from "nodemailer";
 import dotenv from "dotenv";
 import SecretKeys from "../secret_key.js";
+import UserRole from "../models/UserRole.js";
 
 dotenv.config();
 
@@ -25,7 +26,7 @@ const transporter = nodemailer.createTransport({
  */
 export const registerController = async (req, res) => {
   try {
-    const { first_name, last_name, email, password_hash, phone_number } =
+    const { first_name, last_name, email, password_hash, phone_number, user_role } =
       req.body;
 
     // Validate required fields
@@ -49,6 +50,16 @@ export const registerController = async (req, res) => {
         .json({ success: false, message: "User already registered" });
     }
 
+    // Fetch the default 'member' role if user_role is not provided
+    let role_id = user_role;
+    if (!user_role) {
+      const defaultRole = await UserRole.findOne({ role: "member" });
+      if (!defaultRole) {
+        return res.status(500).json({ success: false, message: "Default 'member' role not found" });
+      }
+      role_id = defaultRole._id;
+    }
+
     // Hash the user's password
     const hashedPassword = await hashPassword(password_hash);
 
@@ -64,6 +75,7 @@ export const registerController = async (req, res) => {
       email,
       password_hash: hashedPassword,
       phone_number,
+      role_id, // Assigning the role
       verificationToken,
       verificationTokenExpires: Date.now() + 3600000, // Token expiry in 1 hour
     });
