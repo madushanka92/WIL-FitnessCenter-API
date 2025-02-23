@@ -162,7 +162,7 @@ export const loginController = async (req, res) => {
     }
 
     // Check if user is locked
-    if (user.lockUntil && user.lockUntil > Date.now()) {
+    if (user.failedLoginAttempts != 0 && user.lockUntil && user.lockUntil > Date.now()) {
       return res.status(403).json({ success: false, message: "Too many failed attempts. Try again in 15 minutes." });
     }
 
@@ -189,9 +189,9 @@ export const loginController = async (req, res) => {
     await user.save();
 
     // Generate JWT token
-    const token = JWT.sign({ _id: user._id }, process.env.JWT_SECRET, {
-      expiresIn: "7d",
-    });
+    const token = JWT.sign({ _id: user._id }, process.env.JWT_SECRET, { expiresIn: "15m" });
+    const refreshToken = JWT.sign({ _id: user._id }, process.env.JWT_REFRESH_SECRET, { expiresIn: "7d" });
+
 
     res.status(200).json({
       success: true,
@@ -205,6 +205,7 @@ export const loginController = async (req, res) => {
         role: user.role,
       },
       token,
+      refreshToken
     });
   } catch (error) {
     console.error("Login Error:", error);
@@ -272,4 +273,25 @@ export const resendVerificationEmailController = async (req, res) => {
     res.status(500).json({ success: false, message: "Error resending email", error });
   }
 };
+
+export const refreshTokenController = async (req, res) => {
+  try {
+    const { refreshToken } = req.body;
+    if (!refreshToken) return res.status(401).json({ success: false, message: "Refresh Token required" });
+
+    // Verify Refresh Token
+    JWT.verify(refreshToken, process.env.JWT_REFRESH_SECRET, (err, decoded) => {
+      if (err) return res.status(403).json({ success: false, message: "Invalid Refresh Token" });
+
+      // Generate new Access Token
+      const newAccessToken = JWT.sign({ _id: decoded._id }, process.env.JWT_SECRET, { expiresIn: "15m" });
+
+      res.json({ success: true, token: newAccessToken });
+    });
+  } catch (error) {
+    console.error("Refresh Token Error:", error);
+    res.status(500).json({ success: false, message: "Error refreshing token", error });
+  }
+};
+
 

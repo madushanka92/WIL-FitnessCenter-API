@@ -5,6 +5,7 @@ import {
   testController,
   verifyEmailController,
   resendVerificationEmailController,
+  refreshTokenController,
 } from "../controllers/authController.js";
 import { isAdmin, requireSignIn } from "../middlewares/authMiddleware.js";
 
@@ -17,5 +18,6 @@ router.post("/login", loginController);
 router.get("/verify-email/:token", verifyEmailController);
 router.get("/test", requireSignIn, isAdmin, testController);
 router.get('/resend-verify-email/:token', resendVerificationEmailController);
+router.post("/refresh-token", refreshTokenController);
 
 export default router;
