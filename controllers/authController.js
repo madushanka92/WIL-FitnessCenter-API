@@ -157,7 +157,7 @@ export const loginController = async (req, res) => {
     }
 
     // Find user by email
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email }).populate('role_id');
     if (!user) {
       return res
         .status(404)
@@ -202,8 +202,8 @@ export const loginController = async (req, res) => {
     await user.save();
 
     // Generate JWT token
-    const token = JWT.sign({ _id: user._id }, process.env.JWT_SECRET, { expiresIn: "15m" });
-    const refreshToken = JWT.sign({ _id: user._id }, process.env.JWT_REFRESH_SECRET, { expiresIn: "7d" });
+    const token = JWT.sign({ _id: user._id, role: user.role_id?.role }, process.env.JWT_SECRET, { expiresIn: "15m" });
+    const refreshToken = JWT.sign({ _id: user._id, role: user.role_id?.role }, process.env.JWT_REFRESH_SECRET, { expiresIn: "7d" });
 
 
     res.status(200).json({
@@ -215,7 +215,10 @@ export const loginController = async (req, res) => {
         last_name: user.last_name,
         email: user.email,
         phone_number: user.phone_number,
-        role: user.role,
+        role: {
+          _id: user.role_id?._id,
+          role: user.role_id?.role
+        }
       },
       token,
       refreshToken
@@ -294,10 +297,11 @@ export const refreshTokenController = async (req, res) => {
 
     // Verify Refresh Token
     JWT.verify(refreshToken, process.env.JWT_REFRESH_SECRET, (err, decoded) => {
+
       if (err) return res.status(403).json({ success: false, message: "Invalid Refresh Token" });
 
       // Generate new Access Token
-      const newAccessToken = JWT.sign({ _id: decoded._id }, process.env.JWT_SECRET, { expiresIn: "15m" });
+      const newAccessToken = JWT.sign({ _id: decoded._id, role: decoded.role }, process.env.JWT_SECRET, { expiresIn: "15m" });
 
       res.json({ success: true, token: newAccessToken });
     });
