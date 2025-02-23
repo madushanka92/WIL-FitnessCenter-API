@@ -3,6 +3,7 @@ import User from "../models/User.js";
 import userRoleRoutes from './userRoleRoutes.js';
 import authRoutes from "./authRoutes.js";
 import passwordResetRouter from "./passwordResetRouter.js";
+import trainerRoutes from "./trainerRoutes.js";
 
 const router = express.Router();
 
@@ -17,5 +18,6 @@ router.get("/test", (req, res) => {
 
 
 router.use('/user-roles', userRoleRoutes);
+router.use('/trainers', trainerRoutes);
 
 export default router;
