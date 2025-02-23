@@ -161,13 +161,32 @@ export const loginController = async (req, res) => {
         });
     }
 
+    // Check if user is locked
+    if (user.lockUntil && user.lockUntil > Date.now()) {
+      return res.status(403).json({ success: false, message: "Too many failed attempts. Try again in 15 minutes." });
+    }
+
     // Compare passwords
     const match = await comparePassword(password_hash, user.password_hash);
     if (!match) {
+
+      user.failedLoginAttempts += 1;
+
+      // Lock account after 5 failed attempts (for 15 minutes)
+      if (user.failedLoginAttempts >= 5) {
+        user.lockUntil = Date.now() + 15 * 60 * 1000; // 15 minutes lock
+      }
+
+      await user.save();
       return res
         .status(401)
         .json({ success: false, message: "Invalid password" });
     }
+
+    // Reset failed attempts on successful login
+    user.failedLoginAttempts = 0;
+    user.lockUntil = null;
+    await user.save();
 
     // Generate JWT token
     const token = JWT.sign({ _id: user._id }, process.env.JWT_SECRET, {
