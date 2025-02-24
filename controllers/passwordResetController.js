@@ -1,19 +1,7 @@
 import User from "../models/User.js";
 import JWT from "jsonwebtoken";
 import { hashPassword } from "../helpers/authHelper.js";
-import nodemailer from "nodemailer";
-import SecretKeys from "../secret_key.js";
-
-// Configure SendGrid SMTP Transport
-const sendGridApiKey = SecretKeys.PASSKEY; // SendGrid API key
-const transporter = nodemailer.createTransport({
-  host: "smtp.sendgrid.net",
-  port: 587,
-  auth: {
-    user: "apikey",
-    pass: sendGridApiKey,
-  },
-});
+import { sendEmail } from "../helpers/emailHelper.js";
 
 /**
  * Handles user password reset request by generating a reset token
@@ -23,14 +11,12 @@ export const requestPasswordReset = async (req, res) => {
   try {
     const { email } = req.body;
 
-    // Validate email input
     if (!email) {
       return res
         .status(400)
         .json({ success: false, message: "Email is required" });
     }
 
-    // Check if user exists in the database
     const user = await User.findOne({ email });
     if (!user) {
       return res
@@ -38,38 +24,25 @@ export const requestPasswordReset = async (req, res) => {
         .json({ success: false, message: "User not found" });
     }
 
-    // Generate a password reset token valid for 1 hour
     const token = JWT.sign({ _id: user._id }, process.env.JWT_SECRET, {
       expiresIn: "1h",
     });
 
-    // Store the reset token and expiration time in the database
     user.resetPasswordToken = token;
-    user.resetPasswordExpires = Date.now() + 3600000; // Expires in 1 hour
+    user.resetPasswordExpires = Date.now() + 3600000;
     await user.save();
 
-    // Construct the password reset link
     const resetLink = `${process.env.FRONTEND_URL}/reset-password/${token}`;
-    console.log(`Password Reset Token: ${token}`); // Debugging purpose
+    console.log(`Password Reset Token: ${token}`);
 
-    // Define email options for sending the reset email
-    const mailOptions = {
-      from: "melbin.study@gmail.com", // Sender email address
-      to: email,
-      subject: "Password Reset Request",
-      text: `You requested a password reset. Click the link below to reset your password:
-      
-      ${resetLink}
-      
-      This link expires in 1 hour.`,
-    };
+    // Use the email helper
+    await sendEmail(
+      email,
+      "Password Reset Request",
+      `You requested a password reset. Click the link below to reset your password:\n\n${resetLink}\n\nThis link expires in 1 hour.`
+    );
 
-    // Send the password reset email
-    await transporter.sendMail(mailOptions);
-
-    res
-      .status(200)
-      .json({ success: true, message: "Reset link sent to email" });
+    res.status(200).json({ success: true, message: "Reset link sent to email" });
   } catch (error) {
     console.error("Password Reset Request Error:", error);
     res.status(500).json({
