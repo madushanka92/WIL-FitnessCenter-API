@@ -1,19 +1,32 @@
 import express from "express";
-import { 
-    createPromotion, 
-    getPromotions, 
-    getPromotionById, 
-    updatePromotion, 
-    deletePromotion 
+import {
+  getAllPromotions,
+  getPromotionById,
+  updatePromotion,
+  deletePromotion,
+  applyPromotion,
+  createPromotion,
 } from "../controllers/promotionController.js";
-import { isAdmin, requireSignIn } from "../middlewares/authMiddleware.js"; // Protect routes
+import { requireSignIn, isAdmin } from "../middlewares/authMiddleware.js";
 
 const router = express.Router();
 
-router.post("/",  isAdmin, requireSignIn , createPromotion); // Create
-router.get("/",  isAdmin, requireSignIn , getPromotions); // Get all
-router.get("/:id",  isAdmin, requireSignIn , getPromotionById); // Get single
-router.put("/:id",  isAdmin, requireSignIn , updatePromotion); // Update
-router.delete("/:id",  isAdmin, requireSignIn , deletePromotion); // Delete
+// Create a new promotion (Admin only)
+router.post("/create", requireSignIn, isAdmin, createPromotion);
+
+// Get all promotions
+router.get("/displayPromotions", getAllPromotions);
+
+// Get a single promotion by ID
+router.get("/:id", getPromotionById);
+
+// Update a promotion (Admin only)
+router.put("/:id", requireSignIn, isAdmin, updatePromotion);
+
+// Delete a promotion (Admin only)
+router.delete("/:id", requireSignIn, isAdmin, deletePromotion);
+
+// Apply a promotion code
+router.post("/apply", requireSignIn, applyPromotion);
 
 export default router;

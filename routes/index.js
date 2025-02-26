@@ -4,6 +4,7 @@ import userRoleRoutes from "./userRoleRoutes.js";
 import authRoutes from "./authRoutes.js";
 import passwordResetRouter from "./passwordResetRouter.js";
 import manageUserRoutes from "./manageUserRoutes.js";
+import promotionRoutes from "./promotionRoutes.js";
 
 const router = express.Router();
 
@@ -18,5 +19,5 @@ router.get("/test", (req, res) => {
 
 router.use("/user-roles", userRoleRoutes);
 router.use("/displayusers", manageUserRoutes);
-
+router.use("/promotion", promotionRoutes);
 export default router;
