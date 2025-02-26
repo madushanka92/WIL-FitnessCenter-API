@@ -6,6 +6,7 @@ import cors from "cors";
 import morgan from "morgan";
 import authRoutes from "./routes/authRoutes.js";
 import passwordResetRouter from "./routes/passwordResetRouter.js";
+import promotionRoutes from "./routes/promotionRoutes.js";
 
 dotenv.config();
 //rest object
@@ -19,5 +20,6 @@ connectDB();
 //middlewares
 app.use(express.json());
 app.use("/api/v1", routes);
+app.use("/api/promotions", promotionRoutes);
 
 export default app;
