@@ -30,7 +30,9 @@ export const createTrainer = async (req, res) => {
 export const getAllTrainers = async (req, res) => {
     try {
         // Retrieve all trainers from the database
-        const trainers = await Trainer.find();
+        const trainers = await Trainer.find().populate('user_id');
+        
+        
 
         // Respond with the list of trainers
         res.json(trainers);
