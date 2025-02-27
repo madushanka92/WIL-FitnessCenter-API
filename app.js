@@ -4,8 +4,6 @@ import connectDB from "./config/db.js";
 import routes from "./routes/index.js";
 import cors from "cors";
 import morgan from "morgan";
-import authRoutes from "./routes/authRoutes.js";
-import passwordResetRouter from "./routes/passwordResetRouter.js";
 
 dotenv.config();
 //rest object
