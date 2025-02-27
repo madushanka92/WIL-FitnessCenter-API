@@ -17,6 +17,7 @@ router.get("/test", (req, res) => {
 //---------------------------------------------
 
 router.use("/user-roles", userRoleRoutes);
-router.use("/displayusers", manageUserRoutes);
+router.use("/admin", manageUserRoutes);
+//router.use("/admin/removeUser", manageUserRoutes);
 
 export default router;
