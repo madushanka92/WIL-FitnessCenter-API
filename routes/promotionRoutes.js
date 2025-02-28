@@ -5,14 +5,16 @@ import {
   updatePromotion,
   deletePromotion,
   applyPromotion,
-  createPromotion,
+  createRandomPromotion,
 } from "../controllers/promotionController.js";
 import { requireSignIn, isAdmin } from "../middlewares/authMiddleware.js";
 
 const router = express.Router();
+// Generate a random promotion (Admin only)
+router.post("/random", requireSignIn, isAdmin, createRandomPromotion);
 
 // Create a new promotion (Admin only)
-router.post("/create", requireSignIn, isAdmin, createPromotion);
+//router.post("/create", requireSignIn, isAdmin, createPromotion);
 
 // Get all promotions
 router.get("/displayPromotions", getAllPromotions);

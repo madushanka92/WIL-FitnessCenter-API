@@ -1,35 +1,51 @@
+import { faker }  from '@faker-js/faker';
 import Promotion from "../models/Promotion.js";
+// Create a random promotion with admin-specified expiry and percentage
+export const createRandomPromotion = async (req, res) => {
+  try {
+    const { percentage, expiryDate } = req.body;
 
-// Create a new discount (Admin only)
-export const createPromotion = async (req, res) => {
-    try {
-      const { promo_code, percentage, expiryDate } = req.body;
-  
-      
-      // Check if the promotion promo_code already exists
-      const existingPromotion = await Promotion.findOne({ promo_code });
-      if (existingPromotion) {
-        return res.status(400).json({ success: false, message: "Promotion already exists." });
-      }
-  
-      // Create a new promotion
-      const promotion = new Promotion({ promo_code, percentage, expiryDate });
-      await promotion.save();
-  
-      res.status(201).json({
-        success: true,
-        message: "Promotion created successfully.",
-        promotion,
-      });
-    } catch (error) {
-      console.error("Error creating promotion:", error);
-      res.status(500).json({
+    // Validate admin inputs
+    if (!percentage || percentage < 1 || percentage > 100) {
+      return res.status(400).json({
         success: false,
-        message: "An error occurred while creating the promotion.",
+        message: "Percentage must be between 1 and 100.",
       });
     }
-  };
-  
+
+    if (!expiryDate || isNaN(Date.parse(expiryDate))) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid expiry date format.",
+      });
+    }
+
+    let promo_code;
+    let existingPromotion;
+
+    // Ensure promo_code is unique
+    do {
+      promo_code = faker.string.alphanumeric(8).toUpperCase(); // Generate a random 8-character promo code
+      existingPromotion = await Promotion.findOne({ promo_code });
+    } while (existingPromotion);
+
+    // Create and save the promotion
+    const promotion = new Promotion({ promo_code, percentage, expiryDate });
+    await promotion.save();
+
+    res.status(201).json({
+      success: true,
+      message: "Random promotion created successfully.",
+      promotion,
+    });
+  } catch (error) {
+    console.error("Error creating random promotion:", error);
+    res.status(500).json({
+      success: false,
+      message: "An error occurred while creating the random promotion.",
+    });
+  }
+};
 
 // Get all promotions
 export const getAllPromotions = async (req, res) => {

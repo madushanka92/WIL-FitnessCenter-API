@@ -6,6 +6,7 @@ import passwordResetRouter from "./passwordResetRouter.js";
 import manageUserRoutes from "./manageUserRoutes.js";
 import promotionRoutes from "./promotionRoutes.js";
 
+
 const router = express.Router();
 
 router.use("/auth", authRoutes);
