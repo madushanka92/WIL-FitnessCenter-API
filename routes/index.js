@@ -1,8 +1,10 @@
 import express from "express";
 import User from "../models/User.js";
-import userRoleRoutes from './userRoleRoutes.js';
+import userRoleRoutes from "./userRoleRoutes.js";
 import authRoutes from "./authRoutes.js";
 import passwordResetRouter from "./passwordResetRouter.js";
+import manageUserRoutes from "./manageUserRoutes.js";
+import membershipRoutes from "./membershipRoutes.js";
 
 const router = express.Router();
 
@@ -15,7 +17,8 @@ router.get("/test", (req, res) => {
 });
 //---------------------------------------------
 
-
-router.use('/user-roles', userRoleRoutes);
+router.use("/user-roles", userRoleRoutes);
+router.use("/admin", manageUserRoutes);
+router.use("/memberships", membershipRoutes);
 
 export default router;
