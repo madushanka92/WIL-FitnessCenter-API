@@ -1,6 +1,6 @@
 import User from "../models/User.js";
 import bcrypt from "bcrypt";
-
+//-------------------------DISPLAY USERS--------------------------------------------
 export const getAllUsers = async (req, res) => {
   try {
     // Get page and limit from query parameters, with defaults
@@ -42,7 +42,7 @@ export const getAllUsers = async (req, res) => {
     res.status(500).json({ success: false, message: "Error fetching users" });
   }
 };
-
+//-------------------REMOVE USER BY ID--------------------------------------------------
 export const removeUser = async (req, res) => {
   try {
     const { id } = req.params; // Get user ID from request parameters
@@ -67,7 +67,7 @@ export const removeUser = async (req, res) => {
     res.status(500).json({ success: false, message: "Error deleting user" });
   }
 };
-//---------------------------------------------------------------------------
+//-------------------PASSWORD RESET FROM ADMIN SIDE--------------------------------
 export const passwordReset = async (req, res) => {
   try {
     const { email, newPassword } = req.body;
