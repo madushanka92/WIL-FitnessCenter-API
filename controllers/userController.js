@@ -1,5 +1,7 @@
 import User from "../models/User.js";
+import bcrypt from "bcrypt";
 
+//-------------------------DISPLAY USERS--------------------------------------------
 export const getAllUsers = async (req, res) => {
   try {
     // Get page and limit from query parameters, with defaults
@@ -39,5 +41,70 @@ export const getAllUsers = async (req, res) => {
   } catch (error) {
     console.error("Error fetching users:", error);
     res.status(500).json({ success: false, message: "Error fetching users" });
+  }
+};
+
+//-------------------REMOVE USER BY ID--------------------------------------------------
+export const removeUser = async (req, res) => {
+  try {
+    const { id } = req.params; // Get user ID from request parameters
+
+    // Check if the user exists
+    const user = await User.findById(id);
+    if (!user) {
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found" });
+    }
+
+    // Delete the user
+    await User.findByIdAndDelete(id);
+
+    res.status(200).json({
+      success: true,
+      message: "User deleted successfully",
+    });
+  } catch (error) {
+    console.error("Error deleting user:", error);
+    res.status(500).json({ success: false, message: "Error deleting user" });
+  }
+};
+//-------------------PASSWORD RESET FROM ADMIN SIDE--------------------------------
+export const passwordReset = async (req, res) => {
+  try {
+    const { email, newPassword } = req.body;
+
+    // Validate input
+    if (!email || !newPassword) {
+      return res.status(400).json({
+        success: false,
+        message: "Email and new password are required.",
+      });
+    }
+
+    // Find the user by email
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found." });
+    }
+
+    // Hash the new password
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(newPassword, salt);
+
+    // Update user's password
+    user.password_hash = hashedPassword;
+    await user.save();
+
+    res
+      .status(200)
+      .json({ success: true, message: "Password reset successfully." });
+  } catch (error) {
+    console.error("Error resetting password:", error);
+    res
+      .status(500)
+      .json({ success: false, message: "Error resetting password." });
   }
 };
