@@ -43,21 +43,38 @@ export const getRoleById = async (req, res) => {
     }
 };
 
-// Update a role
+// Update a role with validation
 export const updateRole = async (req, res) => {
     try {
         const { role, isActive } = req.body;
+
+        // Find the role to update
+        const existingRole = await UserRole.findById(req.params.id);
+        if (!existingRole) {
+            return res.status(404).json({ message: "Role not found" });
+        }
+
+        // Check if the role is assigned to any users before deactivating
+        if (!isActive) {
+            const usersWithRole = await User.countDocuments({ role_id: req.params.id });
+            if (usersWithRole > 0) {
+                return res.status(400).json({ message: "Cannot deactivate role. It is assigned to users." });
+            }
+        }
+
+        // Proceed with updating the role
         const updatedRole = await UserRole.findByIdAndUpdate(
             req.params.id,
             { role, isActive },
             { new: true, runValidators: true }
         );
-        if (!updatedRole) return res.status(404).json({ message: "Role not found" });
+
         res.json(updatedRole);
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
 };
+
 
 // Delete a role
 export const deleteRole = async (req, res) => {
