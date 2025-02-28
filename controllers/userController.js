@@ -1,5 +1,6 @@
 import User from "../models/User.js";
 import bcrypt from "bcrypt";
+
 //-------------------------DISPLAY USERS--------------------------------------------
 export const getAllUsers = async (req, res) => {
   try {
@@ -42,6 +43,7 @@ export const getAllUsers = async (req, res) => {
     res.status(500).json({ success: false, message: "Error fetching users" });
   }
 };
+
 //-------------------REMOVE USER BY ID--------------------------------------------------
 export const removeUser = async (req, res) => {
   try {

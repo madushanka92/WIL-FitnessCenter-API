@@ -1,7 +1,7 @@
 import JWT from "jsonwebtoken";
 import userModel from "../models/User.js";
 
-// Protected route token-based authentication
+// Protected route token base
 export const requireSignIn = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
@@ -17,10 +17,13 @@ export const requireSignIn = async (req, res, next) => {
     req.user = decode;
     next();
   } catch (error) {
-    console.error("JWT Verification Error:", error);
-    res
-      .status(401)
-      .send({ success: false, message: "Invalid or Expired Token" });
+    console.error("Error in requireSignIn middleware:", error);
+
+    // Return a 401 response for unauthorized access or token issues
+    return res.status(401).json({
+      success: false,
+      message: "Invalid or expired token.",
+    });
   }
 };
 
