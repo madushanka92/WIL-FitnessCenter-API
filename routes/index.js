@@ -6,6 +6,7 @@ import passwordResetRouter from "./passwordResetRouter.js";
 import manageUserRoutes from "./manageUserRoutes.js";
 import promotionRoutes from "./promotionRoutes.js";
 import membershipRoutes from "./membershipRoutes.js";
+import classRoutes from "./classRoutes.js";
 
 const router = express.Router();
 
@@ -23,5 +24,6 @@ router.use("/displayusers", manageUserRoutes);
 router.use("/promotion", promotionRoutes);
 router.use("/admin", manageUserRoutes);
 router.use("/memberships", membershipRoutes);
+router.use("/class", classRoutes)
 
 export default router;
