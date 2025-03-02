@@ -1,5 +1,6 @@
 import Class from "../models/Class.js";
 import Trainer from "../models/Trainer.js";
+import ClassBooking from "../models/ClassBooking.js"
 
 // Create a new class
 export const createClass = async (req, res) => {
@@ -49,9 +50,10 @@ export const createClass = async (req, res) => {
 };
 
 
-// Get all classes
+// Fetch all classes with trainer and available spots
 export const getAllClasses = async (req, res) => {
   try {
+    // Retrieve all classes from the database
     const classes = await Class.find()
       .populate({
         path: "trainer_id",
@@ -62,18 +64,28 @@ export const getAllClasses = async (req, res) => {
         }
       });
 
-    const formattedClasses = classes.map((cls) => {
-      const classObj = cls.toObject(); // Convert to plain JS object
+    // Format classes and calculate remaining spots
+    const formattedClasses = await Promise.all(
+      classes.map(async (cls) => {
+        const classObj = cls.toObject(); // Convert to plain JS object
 
-      if (classObj.trainer_id?.user_id) {
-        classObj.trainer_id.user = classObj.trainer_id.user_id; // Rename 'user_id' to 'user'
-        delete classObj.trainer_id.user_id; // Remove the original 'user_id'
-      }
-      classObj.trainer = classObj.trainer_id;
-      delete classObj.trainer_id;
+        // Get the number of bookings for this class
+        const bookedCount = await ClassBooking.countDocuments({ class_id: cls._id });
 
-      return classObj;
-    });
+        // Calculate remaining spots
+        classObj.remaining_spots = Math.max(cls.max_capacity - bookedCount, 0);
+
+        // Rename and restructure trainer data for better readability
+        if (classObj.trainer_id?.user_id) {
+          classObj.trainer_id.user = classObj.trainer_id.user_id;
+          delete classObj.trainer_id.user_id;
+        }
+        classObj.trainer = classObj.trainer_id;
+        delete classObj.trainer_id;
+
+        return classObj;
+      })
+    );
 
     res.json(formattedClasses);
   } catch (error) {
@@ -81,9 +93,10 @@ export const getAllClasses = async (req, res) => {
   }
 };
 
-// Get a class by ID
+// Get a class by ID with trainer and available spots
 export const getClassById = async (req, res) => {
   try {
+    // Fetch the class by ID and populate trainer details
     const classItem = await Class.findById(req.params.id).populate({
       path: "trainer_id",
       populate: {
@@ -95,15 +108,22 @@ export const getClassById = async (req, res) => {
 
     if (!classItem) return res.status(404).json({ message: "Class not found" });
 
-    const classObj = classItem.toObject(); // Convert to plain JS object
+    // Convert to plain JS object
+    const classObj = classItem.toObject();
 
+    // Get the number of bookings for this class
+    const bookedCount = await ClassBooking.countDocuments({ class_id: classItem._id });
+
+    // Calculate remaining spots
+    classObj.remaining_spots = Math.max(classItem.max_capacity - bookedCount, 0);
+
+    // Rename and restructure trainer data for better readability
     if (classObj.trainer_id?.user_id) {
-      classObj.trainer_id.user = classObj.trainer_id.user_id; // Rename 'user_id' to 'user'
-      delete classObj.trainer_id.user_id; // Remove the original 'user_id'
+      classObj.trainer_id.user = classObj.trainer_id.user_id;
+      delete classObj.trainer_id.user_id;
     }
     classObj.trainer = classObj.trainer_id;
     delete classObj.trainer_id;
-
 
     res.json(classObj);
   } catch (error) {
@@ -170,12 +190,27 @@ export const updateClass = async (req, res) => {
 };
 
 
-// Delete a class
+// Delete a class (Prevent deletion if bookings exist)
 export const deleteClass = async (req, res) => {
   try {
-    const deletedClass = await Class.findByIdAndDelete(req.params.id);
+    const classId = req.params.id;
+
+    // Check if there are any bookings for this class
+    const bookingCount = await ClassBooking.countDocuments({ class_id: classId });
+
+    if (bookingCount > 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Cannot delete class with existing bookings."
+      });
+    }
+
+    // Proceed with deletion if no bookings exist
+    const deletedClass = await Class.findByIdAndDelete(classId);
+
     if (!deletedClass) return res.status(404).json({ message: "Class not found" });
-    res.json({ message: "Class deleted successfully" });
+
+    res.json({ success: true, message: "Class deleted successfully" });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -197,20 +232,14 @@ export const getUpcomingAvailableClasses = async (req, res) => {
     if (date) {
       const startDate = new Date(date);
       startDate.setUTCHours(0, 0, 0, 0); // Midnight UTC
-
       const endDate = new Date(date);
       endDate.setUTCHours(23, 59, 59, 999); // End of the day UTC
-      console.log("A >> ", startDate, endDate);
-
       filters.start_time = { $gte: startDate, $lte: endDate };
     }
 
     // Filter by Multiple Trainer IDs
     if (trainer_id) {
-      const trainerIds = Array.isArray(trainer_id)
-        ? trainer_id
-        : trainer_id.split(","); // Convert comma-separated values to an array
-
+      const trainerIds = Array.isArray(trainer_id) ? trainer_id : trainer_id.split(",");
       filters.trainer_id = { $in: trainerIds };
     }
 
@@ -219,7 +248,7 @@ export const getUpcomingAvailableClasses = async (req, res) => {
       filters.class_name = { $regex: class_name, $options: "i" };
     }
 
-    // Query the database with filters
+    // Fetch classes
     const upcomingClasses = await Class.find(filters)
       .populate({
         path: "trainer_id",
@@ -230,19 +259,40 @@ export const getUpcomingAvailableClasses = async (req, res) => {
         }
       })
       .sort({ start_time: 1 });
-    const formattedClasses = upcomingClasses.map((classItem) => {
-      const classObj = classItem.toObject(); // Convert to plain JS object
 
-      if (classObj.trainer_id?.user_id) {
-        classObj.trainer_id.user = classObj.trainer_id.user_id;
-        delete classObj.trainer_id.user_id;
-      }
+    // Fetch bookings count per class
+    const classIds = upcomingClasses.map(cls => cls._id);
+    const bookings = await ClassBooking.aggregate([
+      { $match: { class_id: { $in: classIds }, status: "booked" } },
+      { $group: { _id: "$class_id", booked_count: { $sum: 1 } } }
+    ]);
 
-      classObj.trainer = classObj.trainer_id;
-      delete classObj.trainer_id;
+    // Map bookings to class IDs
+    const bookingsMap = {};
+    bookings.forEach(b => bookingsMap[b._id.toString()] = b.booked_count);
 
-      return classObj;
-    });
+    // Format classes and calculate remaining spots
+    const formattedClasses = upcomingClasses
+      .map((classItem) => {
+        const classObj = classItem.toObject();
+        const bookedCount = bookingsMap[classItem._id.toString()] || 0;
+        const remainingSpots = classObj.max_capacity - bookedCount;
+
+        if (remainingSpots <= 0) return null; // Skip fully booked classes
+
+        if (classObj.trainer_id?.user_id) {
+          classObj.trainer_id.user = classObj.trainer_id.user_id;
+          delete classObj.trainer_id.user_id;
+        }
+
+        classObj.trainer = classObj.trainer_id;
+        delete classObj.trainer_id;
+
+        classObj.remaining_spots = remainingSpots; // Add remaining spots
+
+        return classObj;
+      })
+      .filter(cls => cls !== null); // Remove fully booked classes
 
     res.json(formattedClasses);
   } catch (error) {
