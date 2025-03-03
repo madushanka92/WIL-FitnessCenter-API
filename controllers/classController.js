@@ -180,3 +180,44 @@ export const deleteClass = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
+// Get Upcoming Available Classes
+export const getUpcomingAvailableClasses = async (req, res) => {
+  try {
+    const currentTime = new Date();
+
+    const upcomingClasses = await Class.find({
+      start_time: { $gt: currentTime }, // Only future classes
+      max_capacity: { $gt: 0 }, // Ensure capacity is greater than 0
+      status: "upcoming" // Ensure the class is marked as "upcoming"
+    })
+      .populate({
+        path: "trainer_id",
+        populate: {
+          path: "user_id",
+          model: "User",
+          select: "first_name last_name email phone_number"
+        }
+      })
+      .sort({ start_time: 1 }); // Sort by soonest class first
+
+    const formattedClasses = upcomingClasses.map((classItem) => {
+      const classObj = classItem.toObject(); // Convert to plain JS object
+
+      if (classObj.trainer_id?.user_id) {
+        classObj.trainer_id.user = classObj.trainer_id.user_id;
+        delete classObj.trainer_id.user_id;
+      }
+
+      classObj.trainer = classObj.trainer_id;
+      delete classObj.trainer_id;
+
+      return classObj;
+    });
+
+    res.json(formattedClasses);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+

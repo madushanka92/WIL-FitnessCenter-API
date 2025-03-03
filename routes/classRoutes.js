@@ -1,7 +1,7 @@
 import express from 'express';
 
 import { isAdmin, requireSignIn } from '../middlewares/authMiddleware.js';
-import { createClass, deleteClass, getAllClasses, getClassById, updateClass } from '../controllers/classController.js';
+import { createClass, deleteClass, getAllClasses, getClassById, getUpcomingAvailableClasses, updateClass } from '../controllers/classController.js';
 
 const router = express.Router();
 
@@ -10,6 +10,9 @@ router.post('/', requireSignIn, isAdmin, createClass);
 
 // Get all classes (Authenticated users)
 router.get('/', requireSignIn, getAllClasses);
+
+// Get Upcoming Available Classes
+router.get("/upcoming", requireSignIn, getUpcomingAvailableClasses);
 
 // Get a specific class by ID (Authenticated users)
 router.get('/:id', requireSignIn, getClassById);
