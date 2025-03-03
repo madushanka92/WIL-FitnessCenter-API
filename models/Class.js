@@ -25,6 +25,16 @@ const ClassSchema = new Schema({
         required: true,
         min: 1
     },
+    status: {
+        type: String,
+        enum: ["upcoming", "completed", "canceled"],
+        default: "upcoming"
+    },
+    cancellation_reason: {
+        type: String,
+        maxlength: 255,
+        default: null
+    },
     created_at: {
         type: Date,
         default: Date.now
