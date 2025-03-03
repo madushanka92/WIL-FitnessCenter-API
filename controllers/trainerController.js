@@ -94,7 +94,7 @@ export const getTrainerById = async (req, res) => {
     }
 };
 
-// Update a Trainer
+// Updating a Trainer
 export const updateTrainer = async (req, res) => {
     try {
         // Extract updated trainer details from the request body
