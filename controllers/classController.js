@@ -184,13 +184,43 @@ export const deleteClass = async (req, res) => {
 // Get Upcoming Available Classes
 export const getUpcomingAvailableClasses = async (req, res) => {
   try {
+    const { date, trainer_id, class_name } = req.query; // Extract filters
     const currentTime = new Date();
 
-    const upcomingClasses = await Class.find({
+    let filters = {
       start_time: { $gt: currentTime }, // Only future classes
       max_capacity: { $gt: 0 }, // Ensure capacity is greater than 0
-      status: "upcoming" // Ensure the class is marked as "upcoming"
-    })
+      status: "upcoming" // Ensure the class is upcoming
+    };
+
+    // Filter by Date (whole day range)
+    if (date) {
+      const startDate = new Date(date);
+      startDate.setUTCHours(0, 0, 0, 0); // Midnight UTC
+
+      const endDate = new Date(date);
+      endDate.setUTCHours(23, 59, 59, 999); // End of the day UTC
+      console.log("A >> ", startDate, endDate);
+
+      filters.start_time = { $gte: startDate, $lte: endDate };
+    }
+
+    // Filter by Multiple Trainer IDs
+    if (trainer_id) {
+      const trainerIds = Array.isArray(trainer_id)
+        ? trainer_id
+        : trainer_id.split(","); // Convert comma-separated values to an array
+
+      filters.trainer_id = { $in: trainerIds };
+    }
+
+    // Filter by Class Name (Partial Search, Case-Insensitive)
+    if (class_name) {
+      filters.class_name = { $regex: class_name, $options: "i" };
+    }
+
+    // Query the database with filters
+    const upcomingClasses = await Class.find(filters)
       .populate({
         path: "trainer_id",
         populate: {
@@ -199,8 +229,7 @@ export const getUpcomingAvailableClasses = async (req, res) => {
           select: "first_name last_name email phone_number"
         }
       })
-      .sort({ start_time: 1 }); // Sort by soonest class first
-
+      .sort({ start_time: 1 });
     const formattedClasses = upcomingClasses.map((classItem) => {
       const classObj = classItem.toObject(); // Convert to plain JS object
 
