@@ -5,6 +5,9 @@ import authRoutes from "./authRoutes.js";
 import passwordResetRouter from "./passwordResetRouter.js";
 import trainerRoutes from "./trainerRoutes.js";
 import manageUserRoutes from "./manageUserRoutes.js";
+import promotionRoutes from "./promotionRoutes.js";
+import membershipRoutes from "./membershipRoutes.js";
+import classRoutes from "./classRoutes.js";
 
 const router = express.Router();
 
@@ -22,5 +25,9 @@ router.use('/user-roles', userRoleRoutes);
 router.use('/trainers', trainerRoutes);
 router.use("/user-roles", userRoleRoutes);
 router.use("/displayusers", manageUserRoutes);
+router.use("/promotion", promotionRoutes);
+router.use("/admin", manageUserRoutes);
+router.use("/memberships", membershipRoutes);
+router.use("/class", classRoutes)
 
 export default router;

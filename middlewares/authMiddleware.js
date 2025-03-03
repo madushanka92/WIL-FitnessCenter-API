@@ -40,11 +40,10 @@ export const requireSignIn = async (req, res, next) => {
   }
 };
 
-// Accessing admin view
 // Admin access control
 export const isAdmin = async (req, res, next) => {
   try {
-    const user = await userModel.findById(req.user._id).populate('role_id');
+    const user = await userModel.findById(req.user._id).populate("role_id");
     if (!user || user.role_id?.role !== "admin") {
       return res.status(403).send({
         success: false,
