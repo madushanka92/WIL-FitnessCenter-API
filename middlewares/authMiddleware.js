@@ -13,8 +13,21 @@ export const requireSignIn = async (req, res, next) => {
     // Extract token (remove 'Bearer ' prefix)
     const token = authHeader.split(" ")[1];
 
+    // Verify the JWT token from the authorization header
     const decode = JWT.verify(token, process.env.JWT_SECRET);
     req.user = decode;
+    // Check if the authorization header exists
+    if (!req.headers.authorization) {
+      return res.status(401).json({
+        success: false,
+        message: "Authorization header is missing.",
+      });
+    }
+
+    // Attach the decoded user data to the request object
+    req.user = decode;
+
+    // Proceed to the next middleware or route handler
     next();
   } catch (error) {
     console.error("Error in requireSignIn middleware:", error);
