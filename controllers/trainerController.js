@@ -5,6 +5,7 @@ import UserRole from "../models/UserRole.js";
 import User from "../models/User.js";
 import path from "path";
 import fs from "fs";
+import mongoose from "mongoose";
 
 // Create a new Trainer
 export const createTrainer = async (req, res) => {
@@ -63,19 +64,49 @@ export const createTrainer = async (req, res) => {
     }
 };
 
-// Get all Trainers
+//Getting all the Trainers
 export const getAllTrainers = async (req, res) => {
     try {
-        // Retrieve all trainers from the database
-        const trainers = await Trainer.find().populate("user_id");
+        const { search } = req.query; // Get search parameter
+        let filter = {}; // Initialize filter object
 
-        // Respond with the list of trainers
+        if (search) {
+            // Search in 'specialty' field of Trainer
+            filter["$or"] = [
+                { specialty: { $regex: search, $options: "i" } }, // Case-insensitive specialty search
+            ];
+
+            // Find users matching first_name or last_name
+            const users = await User.find({
+                $or: [
+                    { first_name: { $regex: search, $options: "i" } },
+                    { last_name: { $regex: search, $options: "i" } }
+                ]
+            }).select("_id"); // Get user IDs only
+
+            const userIds = users.map(user => user._id);
+
+            // If matching users exist, add them to the filter
+            if (userIds.length > 0) {
+                filter["$or"].push({ user_id: { $in: userIds } });
+            }
+        }
+
+        console.log("Applied Filter:", filter);
+
+        // Fetch trainers based on the filter and populate user details
+        const trainers = await Trainer.find(filter)
+            .populate("user_id", "first_name last_name") // Populate first_name & last_name
+            .exec();
+
+        console.log("Trainers found:", trainers);
         res.json(trainers);
     } catch (error) {
-        // Handle errors and respond with status 500
+        console.error("Error occurred:", error);
         res.status(500).json({ error: error.message });
     }
 };
+
 
 // Get a Trainer by ID
 export const getTrainerById = async (req, res) => {
