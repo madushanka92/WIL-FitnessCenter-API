@@ -50,32 +50,66 @@ export const createClass = async (req, res) => {
 };
 
 
-// Fetch all classes with trainer and available spots
+// Fetch all classes with optional search query for class name or trainer name
 export const getAllClasses = async (req, res) => {
   try {
-    // Retrieve all classes from the database
-    const classes = await Class.find()
-      .populate({
-        path: "trainer_id",
-        populate: {
-          path: "user_id", // This assumes 'user_id' exists in Trainer model
-          model: "User",
-          select: "first_name last_name email phone_number"
-        }
-      });
+    const { search } = req.query; // Get search query from request
 
-    // Format classes and calculate remaining spots
+    // Fetch classes matching class name
+    let classQuery = {};
+    if (search) {
+      classQuery.$or = [
+        { class_name: { $regex: search, $options: "i" } }, // Case-insensitive class name search
+        { status: { $regex: search, $options: "i" } } // Case-insensitive status search
+      ];
+    }
+
+    const classMatches = await Class.find(classQuery).populate({
+      path: "trainer_id",
+      populate: {
+        path: "user_id",
+        model: "User",
+        select: "first_name last_name email phone_number",
+      },
+    });
+
+    // Fetch all classes (since trainer names are in User model)
+    const allClasses = await Class.find().populate({
+      path: "trainer_id",
+      populate: {
+        path: "user_id",
+        model: "User",
+        select: "first_name last_name email phone_number",
+      },
+    });
+
+    // Filter classes based on trainer name
+    const trainerMatches = allClasses.filter(
+      (cls) =>
+        cls.trainer_id?.user_id &&
+        `${cls.trainer_id.user_id.first_name} ${cls.trainer_id.user_id.last_name}`
+          .toLowerCase()
+          .includes(search?.toLowerCase() || "")
+    );
+
+    // Merge results & remove duplicates
+    const mergedResults = [
+      ...classMatches,
+      ...trainerMatches.filter(
+        (cls) => !classMatches.some((c) => c._id.toString() === cls._id.toString())
+      ),
+    ];
+
+    // Format response
     const formattedClasses = await Promise.all(
-      classes.map(async (cls) => {
-        const classObj = cls.toObject(); // Convert to plain JS object
+      mergedResults.map(async (cls) => {
+        const classObj = cls.toObject();
 
-        // Get the number of bookings for this class
+        // Get booked count for this class
         const bookedCount = await ClassBooking.countDocuments({ class_id: cls._id });
-
-        // Calculate remaining spots
         classObj.remaining_spots = Math.max(cls.max_capacity - bookedCount, 0);
 
-        // Rename and restructure trainer data for better readability
+        // Rename trainer field for better readability
         if (classObj.trainer_id?.user_id) {
           classObj.trainer_id.user = classObj.trainer_id.user_id;
           delete classObj.trainer_id.user_id;
@@ -92,6 +126,7 @@ export const getAllClasses = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
 
 // Get a class by ID with trainer and available spots
 export const getClassById = async (req, res) => {
@@ -134,7 +169,7 @@ export const getClassById = async (req, res) => {
 // Update a class
 export const updateClass = async (req, res) => {
   try {
-    const { trainer_id, class_name, max_capacity, start_time, duration_mins } = req.body;
+    const { trainer_id, class_name, max_capacity, start_time, duration_mins, status } = req.body;
 
     // Find the existing class
     const existingClass = await Class.findById(req.params.id);
@@ -181,6 +216,7 @@ export const updateClass = async (req, res) => {
     existingClass.max_capacity = max_capacity ?? existingClass.max_capacity;
     existingClass.start_time = updatedStartTime;
     existingClass.duration_mins = updatedDuration;
+    if (status) existingClass.status = status;
 
     await existingClass.save();
     res.json(existingClass);
