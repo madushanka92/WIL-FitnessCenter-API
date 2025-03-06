@@ -1,4 +1,5 @@
 import User from "../models/User.js";
+import Membership from "../models/Membership.js";
 import bcrypt from "bcrypt";
 
 //-------------------------DISPLAY USERS--------------------------------------------
@@ -84,8 +85,7 @@ export const getUserForTrainer = async (req, res) => {
     console.error("Error fetching users:", error);
     res.status(500).json({ success: false, message: "Error fetching users" });
   }
-
-}
+};
 //-------------------REMOVE USER BY ID--------------------------------------------------
 export const removeUser = async (req, res) => {
   try {
@@ -148,5 +148,54 @@ export const passwordReset = async (req, res) => {
     res
       .status(500)
       .json({ success: false, message: "Error resetting password." });
+  }
+};
+
+//-----------------------------------UPDATE MEMBERSHIP FROM ADMIN SIDE------------------------------------------
+export const updateUserMembership = async (req, res) => {
+  try {
+    const { userId, membershipId } = req.body;
+
+    // Validate input
+    if (!userId || !membershipId) {
+      return res.status(400).json({
+        success: false,
+        message: "User ID and Membership ID are required.",
+      });
+    }
+
+    // Check if the user exists
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found.",
+      });
+    }
+
+    // Check if the membership exists
+    const membership = await Membership.findById(membershipId);
+    if (!membership) {
+      return res.status(404).json({
+        success: false,
+        message: "Membership plan not found.",
+      });
+    }
+
+    // Update the user's membership plan
+    user.membership_id = membershipId;
+    await user.save();
+
+    res.status(200).json({
+      success: true,
+      message: `User's membership updated to ${membership.membership_name}.`,
+      data: user,
+    });
+  } catch (error) {
+    console.error("Error updating membership:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error updating user's membership plan.",
+    });
   }
 };
