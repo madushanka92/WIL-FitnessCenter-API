@@ -11,6 +11,10 @@ const BlogLikeSchema = new Schema({
         ref: 'User',
         required: true
     },
+    like: {
+        type: Boolean,
+        default: true,
+    },
     created_at: {
         type: Date,
         default: Date.now

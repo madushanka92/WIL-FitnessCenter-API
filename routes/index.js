@@ -9,8 +9,8 @@ import promotionRoutes from "./promotionRoutes.js";
 import membershipRoutes from "./membershipRoutes.js";
 import classRoutes from "./classRoutes.js";
 import blogpostRoutes from "./blogpostRoutes.js";
-// import bloglikesRoutes from "./bloglikesRoutes.js";
-// import blogcommentRoutes from "./blogcommentRoutes.js";
+import bloglikesRoutes from "./bloglikesRoutes.js";
+import blogcommentRoutes from "./blogcommentRoutes.js";
 
 const router = express.Router();
 
@@ -33,7 +33,7 @@ router.use("/admin", manageUserRoutes);
 router.use("/memberships", membershipRoutes);
 router.use("/class", classRoutes);
 router.use("/blogPost", blogpostRoutes);
-// router.use("/blogLikes", bloglikesRoutes);
-// router.use("/blogComment", blogcommentRoutes);
+router.use("/blogLikes", bloglikesRoutes);
+router.use("/blogComment", blogcommentRoutes);
 
 export default router;
