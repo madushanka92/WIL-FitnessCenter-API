@@ -8,6 +8,7 @@ import manageUserRoutes from "./manageUserRoutes.js";
 import promotionRoutes from "./promotionRoutes.js";
 import membershipRoutes from "./membershipRoutes.js";
 import classRoutes from "./classRoutes.js";
+import blogpostRoutes from "./blogpostRoutes.js";
 
 const router = express.Router();
 
@@ -29,5 +30,6 @@ router.use("/promotion", promotionRoutes);
 router.use("/admin", manageUserRoutes);
 router.use("/memberships", membershipRoutes);
 router.use("/class", classRoutes)
+router.use("/blogPost", blogpostRoutes)
 
 export default router;

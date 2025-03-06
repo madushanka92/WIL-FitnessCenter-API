@@ -22,7 +22,11 @@ const BlogPostSchema = new Schema({
     updated_at: {
         type: Date,
         default: Date.now
-    }
+    },
+    blog_image: {
+        type: String,
+        default: null
+    },
 });
 
 BlogPostSchema.pre('save', function (next) {
