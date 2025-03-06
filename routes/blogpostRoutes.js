@@ -1,0 +1,28 @@
+import express from 'express';
+import { requireSignIn, isAdmin } from '../middlewares/authMiddleware.js';
+import { 
+    createBlogPost, 
+    getAllBlogPosts, 
+    getBlogPostById, 
+    updateBlogPost, 
+    deleteBlogPost 
+} from '../controllers/blogPostController.js';
+
+const router = express.Router();
+
+// Create a new Blog Post (Admin only)
+router.post('/', requireSignIn, isAdmin, createBlogPost);
+
+// Get all Blog Posts (Authenticated users)
+router.get('/', requireSignIn, getAllBlogPosts);
+
+// Get a specific Blog Post by ID (Authenticated users)
+router.get('/:id', requireSignIn, getBlogPostById);
+
+// Update a Blog Post (Admin only)
+router.put('/:id', requireSignIn, isAdmin, updateBlogPost);
+
+// Delete a Blog Post (Admin only)
+router.delete('/:id', requireSignIn, isAdmin, deleteBlogPost);
+
+export default router;
