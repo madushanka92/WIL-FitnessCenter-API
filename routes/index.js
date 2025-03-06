@@ -21,15 +21,13 @@ router.get("/test", (req, res) => {
 });
 //---------------------------------------------
 
-
-router.use('/user-roles', userRoleRoutes);
-router.use('/trainers', trainerRoutes);
 router.use("/user-roles", userRoleRoutes);
-router.use("/displayusers", manageUserRoutes);
+router.use("/trainers", trainerRoutes);
+router.use("/user-roles", userRoleRoutes);
 router.use("/promotion", promotionRoutes);
 router.use("/admin", manageUserRoutes);
 router.use("/memberships", membershipRoutes);
-router.use("/class", classRoutes)
-router.use("/blogPost", blogpostRoutes)
+router.use("/class", classRoutes);
+router.use("/blogPost", blogpostRoutes);
 
 export default router;
