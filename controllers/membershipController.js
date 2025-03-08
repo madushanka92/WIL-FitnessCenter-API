@@ -47,8 +47,6 @@ export const createMembership = async (req, res) => {
     // Normalize membership name
     membership_name = membership_name.trim().toLowerCase();
 
-    console.log("Checking for existing membership:", membership_name);
-
     // Case-insensitive duplicate check
     const existingProgramme = await Membership.findOne({
       membership_name: new RegExp(`^${membership_name}$`, "i"),

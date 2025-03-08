@@ -15,6 +15,7 @@ import paymentRoutes from "./paymentRoutes.js";
 import bloglikesRoutes from "./bloglikesRoutes.js";
 import blogcommentRoutes from "./blogcommentRoutes.js";
 import userRoutes from "./userRoutes.js";
+import classBookingRoutes from "./classBookingRoutes.js";
 
 const router = express.Router();
 
@@ -42,5 +43,6 @@ router.use("/payment", paymentRoutes);
 router.use("/blogLikes", bloglikesRoutes);
 router.use("/blogComment", blogcommentRoutes);
 router.use("/user", userRoutes);
+router.use("/class-booking", classBookingRoutes);
 
 export default router;

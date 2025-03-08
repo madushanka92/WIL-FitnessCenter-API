@@ -92,14 +92,11 @@ export const getAllTrainers = async (req, res) => {
             }
         }
 
-        console.log("Applied Filter:", filter);
-
         // Fetch trainers based on the filter and populate user details
         const trainers = await Trainer.find(filter)
             .populate("user_id", "first_name last_name") // Populate first_name & last_name
             .exec();
 
-        console.log("Trainers found:", trainers);
         res.json(trainers);
     } catch (error) {
         console.error("Error occurred:", error);
