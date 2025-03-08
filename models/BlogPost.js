@@ -24,8 +24,8 @@ const BlogPostSchema = new Schema({
         default: Date.now
     },
     blog_image: {
-        type: String,
-        default: null
+        type: Array,
+        default: []
     },
 });
 
