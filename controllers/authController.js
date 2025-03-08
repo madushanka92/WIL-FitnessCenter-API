@@ -202,7 +202,7 @@ export const loginController = async (req, res) => {
     await user.save();
 
     // Generate JWT token
-    const token = JWT.sign({ _id: user._id, role: user.role_id?.role }, process.env.JWT_SECRET, { expiresIn: "15m" });
+    const token = JWT.sign({ _id: user._id, role: user.role_id?.role, membership_id: user?.membership_id }, process.env.JWT_SECRET, { expiresIn: "15m" });
     const refreshToken = JWT.sign({ _id: user._id, role: user.role_id?.role }, process.env.JWT_REFRESH_SECRET, { expiresIn: "7d" });
 
 
@@ -296,12 +296,18 @@ export const refreshTokenController = async (req, res) => {
     if (!refreshToken) return res.status(401).json({ success: false, message: "Refresh Token required" });
 
     // Verify Refresh Token
-    JWT.verify(refreshToken, process.env.JWT_REFRESH_SECRET, (err, decoded) => {
+    JWT.verify(refreshToken, process.env.JWT_REFRESH_SECRET, async (err, decoded) => {
 
       if (err) return res.status(403).json({ success: false, message: "Invalid Refresh Token" });
+      const user = await User.findOne({ _id: decoded._id });
+      if (!user) {
+        return res
+          .status(404)
+          .json({ success: false, message: "User not found" });
+      }
 
       // Generate new Access Token
-      const newAccessToken = JWT.sign({ _id: decoded._id, role: decoded.role }, process.env.JWT_SECRET, { expiresIn: "15m" });
+      const newAccessToken = JWT.sign({ _id: decoded._id, role: decoded.role, membership_id: user?.membership_id }, process.env.JWT_SECRET, { expiresIn: "15m" });
 
       res.json({ success: true, token: newAccessToken });
     });

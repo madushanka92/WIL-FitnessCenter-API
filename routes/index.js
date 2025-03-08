@@ -14,6 +14,7 @@ import manageTestimonialRoutes from "./manageTestimonialRoutes.js";
 import paymentRoutes from "./paymentRoutes.js";
 import bloglikesRoutes from "./bloglikesRoutes.js";
 import blogcommentRoutes from "./blogcommentRoutes.js";
+import userRoutes from "./userRoutes.js";
 
 const router = express.Router();
 
@@ -40,5 +41,6 @@ router.use("/manageTestimonials", manageTestimonialRoutes);
 router.use("/payment", paymentRoutes);
 router.use("/blogLikes", bloglikesRoutes);
 router.use("/blogComment", blogcommentRoutes);
+router.use("/user", userRoutes);
 
 export default router;

@@ -18,7 +18,7 @@ const MembershipHistorySchema = new Schema({
     },
     change_type: {
         type: String,
-        enum: ['upgrade', 'downgrade', 'cancellation'],
+        enum: ['upgrade', 'downgrade', 'cancellation', 'renew', "new"],
         required: true
     },
     change_date: {

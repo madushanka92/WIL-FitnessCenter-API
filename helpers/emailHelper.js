@@ -22,13 +22,14 @@ const transporter = nodemailer.createTransport({
  * @param {string} text - Email body text
  * @returns {Promise} - Resolves if email is sent successfully
  */
-export const sendEmail = async (to, subject, text) => {
+export const sendEmail = async (to, subject, text, html) => {
     try {
         const mailOptions = {
             from: "melbin.study@gmail.com",
             to,
             subject,
             text,
+            html
         };
 
         await transporter.sendMail(mailOptions);
