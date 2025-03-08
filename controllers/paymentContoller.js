@@ -6,6 +6,9 @@ import Payment from '../models/Payment.js';
 import User from '../models/User.js';
 import JWT from "jsonwebtoken";
 import MembershipHistory from '../models/MembershipHistory.js';
+import { generateInvoice } from '../helpers/invoiceHelper.js';
+import { sendEmail } from '../helpers/emailHelper.js';
+import PaymentPromotion from '../models/PaymentPromotion.js';
 
 const stripe = new Stripe(SecretKeys.STRIPE_SECRET_KEY, {
     apiVersion: '2023-10-16',
@@ -71,7 +74,7 @@ export const updateMembershipPayment = async (req, res) => {
         const user_id = decoded._id;
 
         // Extract data from request body
-        const { membership_id, amount, payment_method, transaction_id } = req.body;
+        const { membership_id, amount, payment_method, transaction_id, discountCode, amountBeforeDiscount } = req.body;
 
         if (!membership_id || !amount || !payment_method || !transaction_id) {
             return res.status(400).json({ message: 'Missing required payment details' });
@@ -100,6 +103,21 @@ export const updateMembershipPayment = async (req, res) => {
             transaction_id,
         });
         await payment.save();
+
+        if (discountCode) {
+            const promotion = await Promotion.findOne({ promo_code: discountCode, isActive: true });
+            if (promotion) {
+                const discount_applied = Math.floor(amountBeforeDiscount * (parseFloat(promotion.percentage) / 100) * 100) / 100
+
+                const paymentPoromotion = new PaymentPromotion({
+                    payment_id: payment._id,
+                    promo_id: promotion._id,
+                    discount_applied: discount_applied
+                });
+                await paymentPoromotion.save();
+            }
+
+        }
 
         let createHistory = true;
 
@@ -145,9 +163,44 @@ export const updateMembershipPayment = async (req, res) => {
         await user.save();
 
 
-        return res.status(200).json({ success: true, message: 'Payment recorded successfully and user membership updated', payment });
+        // Send invoice email after successful payment
+        const sendInvoiceResponse = await sendInvoiceEmail(payment, user);
+
+        if (sendInvoiceResponse.success) {
+            return res.status(200).json({
+                success: true,
+                message: 'Payment recorded successfullPayment recorded successfully and user membership updated, invoice sent',
+                payment
+            });
+        } else {
+            return res.status(500).json({
+                success: false,
+                message: 'Payment recorded successfully and user membership updated, but failed to send invoice email',
+            });
+        }
     } catch (error) {
         console.error('Error updating payment:', error);
         return res.status(500).json({ message: 'Internal server error' });
+    }
+};
+
+export const sendInvoiceEmail = async (payment, user) => {
+    try {
+        // Generate the invoice content
+        const invoiceContent = await generateInvoice(payment);
+
+        // Send the email using the sendEmail function
+        const emailResponse = await sendEmail(user.email, "Your Invoice", "Your invoice details", invoiceContent);
+
+        if (emailResponse.success) {
+            console.log('Invoice email sent successfully');
+            return { success: true, message: 'Invoice sent successfully' };
+        } else {
+            console.error('Failed to send invoice email');
+            return { success: false, message: 'Failed to send invoice email' };
+        }
+    } catch (error) {
+        console.error("Error generating/sending invoice:", error);
+        return { success: false, message: 'Error generating/sending invoice', error };
     }
 };
