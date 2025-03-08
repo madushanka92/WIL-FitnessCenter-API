@@ -9,6 +9,8 @@ import promotionRoutes from "./promotionRoutes.js";
 import membershipRoutes from "./membershipRoutes.js";
 import classRoutes from "./classRoutes.js";
 import blogpostRoutes from "./blogpostRoutes.js";
+import testimonialRoutes from "./testimonialRoutes.js";
+import manageTestimonialRoutes from "./manageTestimonialRoutes.js";
 
 const router = express.Router();
 
@@ -21,15 +23,16 @@ router.get("/test", (req, res) => {
 });
 //---------------------------------------------
 
-
-router.use('/user-roles', userRoleRoutes);
-router.use('/trainers', trainerRoutes);
+router.use("/user-roles", userRoleRoutes);
+router.use("/trainers", trainerRoutes);
 router.use("/user-roles", userRoleRoutes);
 router.use("/displayusers", manageUserRoutes);
 router.use("/promotion", promotionRoutes);
 router.use("/admin", manageUserRoutes);
 router.use("/memberships", membershipRoutes);
-router.use("/class", classRoutes)
-router.use("/blogPost", blogpostRoutes)
+router.use("/class", classRoutes);
+router.use("/blogPost", blogpostRoutes);
+router.use("/testimonials", testimonialRoutes);
+router.use("/manageTestimonials", manageTestimonialRoutes);
 
 export default router;
