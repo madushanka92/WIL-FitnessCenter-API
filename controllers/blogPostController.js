@@ -9,17 +9,17 @@ export const createBlogPost = async (req, res) => {
     try {
         const { title, content } = req.body;
 
-        
-            const authHeader = req.headers.authorization;
-        
-            // Extract token (remove 'Bearer ' prefix)
-            const token = authHeader.split(" ")[1];
-        
-            // Verify the JWT token from the authorization header
-            const decode = JWT.verify(token, process.env.JWT_SECRET);
-            console.log("decode ", decode);
-            const admin_id = decode._id;
-        
+
+        const authHeader = req.headers.authorization;
+
+        // Extract token (remove 'Bearer ' prefix)
+        const token = authHeader.split(" ")[1];
+
+        // Verify the JWT token from the authorization header
+        const decode = JWT.verify(token, process.env.JWT_SECRET);
+
+        const admin_id = decode._id;
+
         const newBlogPost = new BlogPost({
             admin_id,
             title,
@@ -79,7 +79,7 @@ export const deleteBlogPost = async (req, res) => {
     try {
         const deletedBlogPost = await BlogPost.findByIdAndDelete(req.params.id);
         if (!deletedBlogPost) return res.status(404).json({ message: "Blog Post not found" });
-        
+
         res.json({ message: "Blog Post deleted successfully" });
     } catch (error) {
         res.status(500).json({ error: error.message });

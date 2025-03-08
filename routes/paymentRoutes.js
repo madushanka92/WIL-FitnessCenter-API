@@ -1,6 +1,7 @@
 import express from "express";
 import {
-  createPayment
+  createPayment,
+  updateMembershipPayment
 } from "../controllers/paymentContoller.js";
 import { isAdmin, requireSignIn } from "../middlewares/authMiddleware.js";
 
@@ -9,6 +10,7 @@ const router = express.Router();
 
 // Routes
 router.post("/", requireSignIn, createPayment);
+router.post("/membership", requireSignIn, updateMembershipPayment);
 
 // router.post("/login", loginController);
 // router.get("/verify-email/:token", verifyEmailController);
