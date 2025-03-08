@@ -11,6 +11,9 @@ import classRoutes from "./classRoutes.js";
 import blogpostRoutes from "./blogpostRoutes.js";
 import testimonialRoutes from "./testimonialRoutes.js";
 import manageTestimonialRoutes from "./manageTestimonialRoutes.js";
+import paymentRoutes from "./paymentRoutes.js";
+import bloglikesRoutes from "./bloglikesRoutes.js";
+import blogcommentRoutes from "./blogcommentRoutes.js";
 
 const router = express.Router();
 
@@ -34,5 +37,8 @@ router.use("/class", classRoutes);
 router.use("/blogPost", blogpostRoutes);
 router.use("/testimonials", testimonialRoutes);
 router.use("/manageTestimonials", manageTestimonialRoutes);
+router.use("/payment", paymentRoutes);
+router.use("/blogLikes", bloglikesRoutes);
+router.use("/blogComment", blogcommentRoutes);
 
 export default router;
