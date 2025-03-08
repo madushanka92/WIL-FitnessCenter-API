@@ -1,4 +1,4 @@
-import { faker }  from '@faker-js/faker';
+import { faker } from '@faker-js/faker';
 import Promotion from "../models/Promotion.js";
 // Create a random promotion with admin-specified expiry and percentage
 export const createRandomPromotion = async (req, res) => {
@@ -53,7 +53,7 @@ export const getAllPromotions = async (req, res) => {
     const promotions = await Promotion.find();
     res.status(200).json({ success: true, promotions });
   } catch (error) {
-    res.status(500).json({ success: false, message: "Server error.", error });
+    res.status(500).json({ success: false, message: "An unexpected error occurred while applying the promotion. Please try again later.", error });
   }
 };
 
@@ -114,12 +114,12 @@ export const applyPromotion = async (req, res) => {
     const promotion = await Promotion.findOne({ promo_code, isActive: true });
 
     if (!promotion) {
-      return res.status(404).json({ success: false, message: "Invalid or expired promotion promo_code." });
+      return res.status(404).json({ success: false, message: "Invalid or expired promotion code." });
     }
 
     // Check if the promotion is expired
     if (new Date() > new Date(promotion.expiryDate)) {
-      return res.status(400).json({ success: false, message: "This promotion promo_code has expired." });
+      return res.status(400).json({ success: false, message: "This promotion code has been expired." });
     }
 
     res.status(200).json({
