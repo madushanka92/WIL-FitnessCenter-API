@@ -3,15 +3,19 @@ import BlogPost from "../models/BlogPost.js";
 import JWT from "jsonwebtoken";
 import path from "path";
 import fs from "fs";
+import { newBlogPostNotificationEmail } from "../util/newBlogPostNotificationEmail.js";
 
 const router = Router();
 
 // Create a new Blog Post
 export const createBlogPost = async (req, res) => {
     try {
-        const { title, content } = req.body;
+        const { title, content, author } = req.body; 
         const files = req.files;
-        const blog_image = files.map(file => file.path = "/" + file.path);
+
+        let blog_image = undefined;
+        if (files)
+            blog_image = files.map(file => file.path = "/" + file.path);
         let validFileSize = true;
 
         // // Validate file sizes manually
@@ -49,8 +53,12 @@ export const createBlogPost = async (req, res) => {
             admin_id,
             title,
             content,
+            author,
             blog_image
         });
+
+        // Send email notifications to users
+        await newBlogPostNotificationEmail(newBlogPost);
 
         await newBlogPost.save();
         res.status(201).json({ success: true, blogPost: newBlogPost });
@@ -97,7 +105,7 @@ export const getBlogPostById = async (req, res) => {
 // Update a Blog Post
 export const updateBlogPost = async (req, res) => {
     try {
-        const { title, content } = req.body;
+        const { title, content, author } = req.body;
 
         const existingBlogPost = await BlogPost.findById(req.params.id);
         if (!existingBlogPost) return res.status(404).json({ message: "Blog Post not found" });
@@ -141,7 +149,7 @@ export const updateBlogPost = async (req, res) => {
         // Update the blog post
         const updatedBlogPost = await BlogPost.findByIdAndUpdate(
             req.params.id,
-            { title, content, blog_image, updated_at: Date.now() },
+            { title, content, blog_image, author, updated_at: Date.now() },
             { new: true, runValidators: true }
         );
 

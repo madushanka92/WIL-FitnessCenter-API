@@ -27,6 +27,10 @@ const BlogPostSchema = new Schema({
         type: Array,
         default: []
     },
+    author: {
+        type: String,
+        require: true
+    }
 });
 
 BlogPostSchema.pre('save', function (next) {
