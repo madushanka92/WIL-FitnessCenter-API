@@ -87,14 +87,28 @@ export const bookClass = async (req, res) => {
             });
         }
 
-        // Book The Class
-        const newBooking = new ClassBooking({
-            user_id,
-            class_id,
-            status: "booked",
+        // check if user booked and cancelld before
+        const checkCancelld = await ClassBooking.findOne({
+            user_id, class_id, status: 'canceled'
         });
 
-        await newBooking.save();
+
+        let newBooking = undefined;
+
+        if (!checkCancelld) {
+            // Book The Class
+            newBooking = new ClassBooking({
+                user_id,
+                class_id,
+                status: "booked",
+            });
+
+            await newBooking.save();
+        } else {
+            newBooking = await ClassBooking.findByIdAndUpdate(checkCancelld._id, {
+                status: "booked"
+            })
+        }
 
         // Send Notification email after successful booking
         const sendNotificationResponse = await sendNotificationEmail(selectedClass, newBooking);
@@ -179,7 +193,7 @@ export const cancelClassBooking = async (req, res) => {
         res.status(500).json({
             success: false,
             message: error.message
-        }); 
+        });
     }
 };
 
@@ -200,6 +214,40 @@ export const sendNotificationEmail = async (selectedClass, newBooking) => {
         }
     } catch (error) {
         return { success: false, message: 'Error generating/sending Notification', error };
+    }
+}
+
+
+export const getClassForUser = async (req, res) => {
+    try {
+        const { user_id } = tokenDecoder(req);
+        // Fetch all bookings for the given user
+        const bookings = await ClassBooking.find({ user_id })
+            .populate({
+                path: "class_id",
+                populate: {
+                    path: "trainer_id",
+                    model: "Trainer",
+                    populate: {
+                        path: "user_id",
+                        model: "User"
+                    }
+                },
+            });
+
+        if (!bookings || bookings.length === 0) {
+            return { success: false, message: "No bookings found for this user." };
+        }
+
+        return res.status(200).json({
+            success: true,
+            bookings
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
     }
 }
 
