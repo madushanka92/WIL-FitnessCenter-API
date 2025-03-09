@@ -3,6 +3,10 @@ import Class from "../models/Class.js";
 import Membership from "../models/Membership.js";
 import moment from "moment";
 import { tokenDecoder } from "../helpers/decodeHelper.js";
+import { bookingNotification } from "../util/bookingNotificationEmail.js";
+import User from "../models/User.js";
+import { sendEmail } from "../helpers/emailHelper.js";
+import { cancelNotificationEmail } from "../util/cancelNotificationEmail.js";
 
 export const bookClass = async (req, res) => {
     try {
@@ -18,7 +22,14 @@ export const bookClass = async (req, res) => {
         }
 
         // Check If Class Exists
-        const selectedClass = await Class.findById(class_id);
+        const selectedClass = await Class.findById(class_id).populate({
+            path: "trainer_id",
+            populate: {
+                path: "user_id",
+                model: "User",
+                select: "first_name last_name email phone_number",
+            },
+        })
         if (!selectedClass) {
             return res
                 .status(404)
@@ -76,20 +87,45 @@ export const bookClass = async (req, res) => {
             });
         }
 
-        // Book The Class
-        const newBooking = new ClassBooking({
-            user_id,
-            class_id,
-            status: "booked",
+        // check if user booked and cancelld before
+        const checkCancelld = await ClassBooking.findOne({
+            user_id, class_id, status: 'canceled'
         });
 
-        await newBooking.save();
 
-        res.status(201).json({
-            success: true,
-            message: "Class booked successfully.",
-            booking: newBooking,
-        });
+        let newBooking = undefined;
+
+        if (!checkCancelld) {
+            // Book The Class
+            newBooking = new ClassBooking({
+                user_id,
+                class_id,
+                status: "booked",
+            });
+
+            await newBooking.save();
+        } else {
+            newBooking = await ClassBooking.findByIdAndUpdate(checkCancelld._id, {
+                status: "booked"
+            })
+        }
+
+        // Send Notification email after successful booking
+        const sendNotificationResponse = await sendNotificationEmail(selectedClass, newBooking);
+
+        if (sendNotificationResponse.success) {
+            return res.status(200).json({
+                success: true,
+                message: 'Class booked successfully, notification sent',
+                booking: newBooking,
+            });
+        } else {
+            return res.status(200).json({
+                success: true,
+                message: 'Class booked successfull, but failed to send notification email',
+                booking: newBooking,
+            });
+        }
 
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
@@ -101,6 +137,22 @@ export const cancelClassBooking = async (req, res) => {
     try {
         const { class_id } = req.body;
         const { user_id } = tokenDecoder(req);
+
+
+        // Check If Class Exists
+        const selectedClass = await Class.findById(class_id).populate({
+            path: "trainer_id",
+            populate: {
+                path: "user_id",
+                model: "User",
+                select: "first_name last_name email phone_number",
+            },
+        })
+        if (!selectedClass) {
+            return res
+                .status(404)
+                .json({ success: false, message: "Class not found." });
+        }
 
         //  Check If Booking Exists
         const existingBooking = await ClassBooking.findOne({
@@ -120,11 +172,22 @@ export const cancelClassBooking = async (req, res) => {
         existingBooking.status = "canceled";
         await existingBooking.save();
 
-        res.status(200).json({
-            success: true,
-            message: "Your class booking has been cancelled successfully.",
-            booking: existingBooking
-        });
+        // Send Cancellation Notification Email
+        const sendCancelNotificationResponse = await cancelNotificationEmail(selectedClass, existingBooking);
+
+        if (sendCancelNotificationResponse.success) {
+            return res.status(200).json({
+                success: true,
+                message: 'Your class booking has been cancelled successfully., notification sent',
+                booking: existingBooking,
+            });
+        } else {
+            return res.status(200).json({
+                success: true,
+                message: 'Your class booking has been cancelled successfully., but failed to send notification email',
+                booking: existingBooking,
+            });
+        }
 
     } catch (error) {
         res.status(500).json({
@@ -133,5 +196,59 @@ export const cancelClassBooking = async (req, res) => {
         });
     }
 };
+
+export const sendNotificationEmail = async (selectedClass, newBooking) => {
+    try {
+        const user = await User.findById(newBooking.user_id);
+        const notificationContent = await bookingNotification(selectedClass, newBooking);
+
+        // Send the email using the sendEmail function
+        const emailResponse = await sendEmail(user.email, "Class Booking", "Your class details", notificationContent);
+
+        if (emailResponse.success) {
+            console.log('Notification email sent successfully');
+            return { success: true, message: 'Notification sent successfully' };
+        } else {
+            console.error('Failed to send Notification email');
+            return { success: false, message: 'Failed to send Notification email' };
+        }
+    } catch (error) {
+        return { success: false, message: 'Error generating/sending Notification', error };
+    }
+}
+
+
+export const getClassForUser = async (req, res) => {
+    try {
+        const { user_id } = tokenDecoder(req);
+        // Fetch all bookings for the given user
+        const bookings = await ClassBooking.find({ user_id })
+            .populate({
+                path: "class_id",
+                populate: {
+                    path: "trainer_id",
+                    model: "Trainer",
+                    populate: {
+                        path: "user_id",
+                        model: "User"
+                    }
+                },
+            });
+
+        if (!bookings || bookings.length === 0) {
+            return { success: false, message: "No bookings found for this user." };
+        }
+
+        return res.status(200).json({
+            success: true,
+            bookings
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
+    }
+}
 
 
