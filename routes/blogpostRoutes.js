@@ -15,10 +15,10 @@ const router = express.Router();
 router.post('/', requireSignIn, isAdmin, upload.array("blog_images", 5), createBlogPost);
 
 // Get all Blog Posts (Authenticated users)
-router.get('/', requireSignIn, getAllBlogPosts);
+router.get('/', getAllBlogPosts);
 
 // Get a specific Blog Post by ID (Authenticated users)
-router.get('/:id', requireSignIn, getBlogPostById);
+router.get('/:id', getBlogPostById);
 
 // Update a Blog Post (Admin only)
 router.put('/:id', requireSignIn, isAdmin, upload.array("blog_images", 5), updateBlogPost);
