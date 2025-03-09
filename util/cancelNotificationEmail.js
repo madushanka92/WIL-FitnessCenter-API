@@ -6,6 +6,8 @@ export const cancelNotificationEmail = async (selectedClass, canceledBooking) =>
     try {
         const user = await User.findById(canceledBooking.user_id);
 
+        if (!user || !user.reminders) return { success: false, message: 'Failed to send cancellation email' };
+
         // Construct the cancellation notification content
         const cancelNotificationContent = `
             <h3>Class Booking Cancellation</h3>

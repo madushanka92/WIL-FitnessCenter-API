@@ -16,9 +16,7 @@ export const bookClass = async (req, res) => {
         // Fetch Membership Details
         const membership = await Membership.findById(membership_id);
         if (!membership) {
-            return res
-                .status(404)
-                .json({ success: false, message: "Membership is required !" });
+            return res.status(404).json({ success: false, message: "Membership is required !" });
         }
 
         // Check If Class Exists
@@ -29,31 +27,33 @@ export const bookClass = async (req, res) => {
                 model: "User",
                 select: "first_name last_name email phone_number",
             },
-        })
-        if (!selectedClass) {
-            return res
-                .status(404)
-                .json({ success: false, message: "Class not found." });
-        }
-
-        // Get This Week's Range (Start/End Date)
-        const startOfWeek = moment().startOf("isoWeek").toDate();  // ISO week starts on Monday
-        const endOfWeek = moment().endOf("isoWeek").toDate();
-
-        // Fetch All User's Bookings (regardless of week)
-        const weeklyBookings = await ClassBooking.find({
-            user_id,
-            status: "booked"
-        }).populate("class_id");
-
-        // Now Filter Classes By "Start Date" In This Week
-        const classesThisWeek = weeklyBookings.filter((booking) => {
-            const classStartDate = new Date(booking.class_id.start_time); // Class start time
-            return classStartDate >= startOfWeek && classStartDate <= endOfWeek;
         });
 
+        if (!selectedClass) {
+            return res.status(404).json({ success: false, message: "Class not found." });
+        }
+
+        // Get Class Start Time & Define The Week From That Date
+        const classStartTime = new Date(selectedClass.start_time);
+        const startOfWeek = moment(classStartTime).startOf("isoWeek").toDate();
+        const endOfWeek = moment(classStartTime).endOf("isoWeek").toDate();
+
+        console.log("A >> ", startOfWeek, endOfWeek)
+
+        const weeklyBookings = await ClassBooking.find({
+            user_id,
+            status: { $ne: "canceled" }
+        }).populate("class_id");
+
+        const filteredBookings = weeklyBookings.filter(booking => {
+            const startTime = new Date(booking.class_id.start_time);
+            return startTime >= startOfWeek && startTime <= endOfWeek;
+        });
+
+        console.log("weeklyBookings ", filteredBookings.length)
+
         // Check If User Exceeded Max Classes Per Week
-        if (classesThisWeek.length >= membership.max_classes_per_week) {
+        if (filteredBookings.length >= membership.max_classes_per_week) {
             return res.status(400).json({
                 success: false,
                 message: `You have reached your maximum class limit (${membership.max_classes_per_week}) for this week.`,
@@ -64,7 +64,7 @@ export const bookClass = async (req, res) => {
         const existingBooking = await ClassBooking.findOne({
             user_id,
             class_id,
-            status: "booked",
+            status: { $ne: "canceled" },
         });
 
         if (existingBooking) {
@@ -77,7 +77,7 @@ export const bookClass = async (req, res) => {
         // Check Class Capacity
         const classBookings = await ClassBooking.find({
             class_id,
-            status: "booked",
+            status: { $ne: "canceled" },
         });
 
         if (classBookings.length >= selectedClass.max_capacity) {
@@ -87,30 +87,29 @@ export const bookClass = async (req, res) => {
             });
         }
 
-        // check if user booked and cancelld before
-        const checkCancelld = await ClassBooking.findOne({
+        // Check If User Previously Canceled This Class
+        const checkCanceled = await ClassBooking.findOne({
             user_id, class_id, status: 'canceled'
         });
 
+        let newBooking;
 
-        let newBooking = undefined;
-
-        if (!checkCancelld) {
+        if (!checkCanceled) {
             // Book The Class
             newBooking = new ClassBooking({
                 user_id,
                 class_id,
                 status: "booked",
             });
-
             await newBooking.save();
         } else {
-            newBooking = await ClassBooking.findByIdAndUpdate(checkCancelld._id, {
+            // Reactivate The Previously Canceled Booking
+            newBooking = await ClassBooking.findByIdAndUpdate(checkCanceled._id, {
                 status: "booked"
-            })
+            }, { new: true });
         }
 
-        // Send Notification email after successful booking
+        // Send Notification Email After Successful Booking
         const sendNotificationResponse = await sendNotificationEmail(selectedClass, newBooking);
 
         if (sendNotificationResponse.success) {
@@ -122,7 +121,7 @@ export const bookClass = async (req, res) => {
         } else {
             return res.status(200).json({
                 success: true,
-                message: 'Class booked successfull, but failed to send notification email',
+                message: 'Class booked successfully, but failed to send notification email',
                 booking: newBooking,
             });
         }
@@ -131,6 +130,7 @@ export const bookClass = async (req, res) => {
         res.status(500).json({ success: false, message: error.message });
     }
 };
+
 
 
 export const cancelClassBooking = async (req, res) => {
@@ -214,6 +214,8 @@ export const cancelClassBooking = async (req, res) => {
 export const sendNotificationEmail = async (selectedClass, newBooking) => {
     try {
         const user = await User.findById(newBooking.user_id);
+        if (!user || !user.reminders) return { success: false, message: 'Failed to send Notification email' };
+
         const notificationContent = await bookingNotification(selectedClass, newBooking);
 
         // Send the email using the sendEmail function

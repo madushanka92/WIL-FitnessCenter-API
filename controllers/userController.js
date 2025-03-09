@@ -220,17 +220,48 @@ export const updateUserData = async (req, res) => {
       });
     }
 
+    if (updateData.password) {
+      // Hash the new password
+      const salt = await bcrypt.genSalt(10);
+      updateData.password_hash = await bcrypt.hash(updateData.password, salt);
+    }
+
     // Update user data
     Object.assign(user, updateData);
     await user.save();
 
+    const { first_name, last_name, email, phone_number, role_id, membership_id, reminders } = user;
     res.status(200).json({
       success: true,
       message: "User data updated successfully",
-      data: user,
+      data: {
+        first_name, last_name, email, phone_number, role_id, membership_id, reminders,
+      }
     });
   } catch (error) {
     console.error("Error updating user data:", error);
     res.status(500).json({ success: false, message: "Error updating user data" });
+  }
+};
+
+//-------------------GET USER BY ID--------------------------------------------------
+export const getUserById = async (req, res) => {
+  try {
+    const { id } = req.params; // Get user ID from request parameters
+
+    // Fetch user by ID
+    const user = await User.findById(id).select("_id first_name last_name email phone_number role_id membership_id reminders");
+
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found" });
+    }
+
+    res.status(200).json({
+      success: true,
+      data: user,
+    });
+  } catch (error) {
+    console.error("Error fetching user:", error);
+    res.status(500).json({ success: false, message: "Error fetching user" });
   }
 };
