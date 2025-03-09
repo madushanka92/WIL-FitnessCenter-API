@@ -2,6 +2,7 @@ import Class from "../models/Class.js";
 import Trainer from "../models/Trainer.js";
 import ClassBooking from "../models/ClassBooking.js"
 import { tokenDecoder } from "../helpers/decodeHelper.js";
+import moment from "moment";
 
 // Create a new class
 export const createClass = async (req, res) => {
@@ -54,7 +55,7 @@ export const createClass = async (req, res) => {
 // Fetch all classes with optional search query for class name or trainer name
 export const getAllClasses = async (req, res) => {
   try {
-    const { search } = req.query; // Get search query from request
+    const { search, start_time } = req.query; // Get search query from request
 
     const { user_id } = tokenDecoder(req);
 
@@ -71,6 +72,13 @@ export const getAllClasses = async (req, res) => {
       ];
     }
 
+    // Handle the start_time filter
+    if (start_time) {
+      const startDate = moment(start_time).startOf('day').toDate();
+      classQuery.start_time = { $gte: startDate }; // Filter classes starting on or after the date
+    }
+
+
     // Fetch classes that match the search query
     const classMatches = await Class.find(classQuery).populate({
       path: "trainer_id",
@@ -81,8 +89,14 @@ export const getAllClasses = async (req, res) => {
       },
     });
 
+    let classAllQuery = {};
+    if (start_time) {
+      const startDate = moment(start_time).startOf('day').toDate();
+      classAllQuery.start_time = { $gte: startDate }; // Filter classes starting on or after the date
+    }
+
     // Fetch all classes to filter by Trainer Name
-    const allClasses = await Class.find().populate({
+    const allClasses = await Class.find(classAllQuery).populate({
       path: "trainer_id",
       populate: {
         path: "user_id",
