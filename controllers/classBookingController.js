@@ -138,7 +138,6 @@ export const cancelClassBooking = async (req, res) => {
         const { class_id } = req.body;
         const { user_id } = tokenDecoder(req);
 
-
         // Check If Class Exists
         const selectedClass = await Class.findById(class_id).populate({
             path: "trainer_id",
@@ -147,14 +146,28 @@ export const cancelClassBooking = async (req, res) => {
                 model: "User",
                 select: "first_name last_name email phone_number",
             },
-        })
+        });
+
         if (!selectedClass) {
             return res
                 .status(404)
                 .json({ success: false, message: "Class not found." });
         }
 
-        //  Check If Booking Exists
+        // Check if the class can be canceled (24 hours before class start time)
+        const currentTime = new Date();
+        const classStartTime = new Date(selectedClass.start_time);
+        const timeDifference = classStartTime - currentTime;
+
+        // If the class is starting in less than 24 hours
+        if (timeDifference <= 24 * 60 * 60 * 1000) { // 24 hours in milliseconds
+            return res.status(400).json({
+                success: false,
+                message: "You can only cancel your booking 24 hours before the class starts."
+            });
+        }
+
+        // Check If Booking Exists
         const existingBooking = await ClassBooking.findOne({
             user_id,
             class_id,
@@ -168,7 +181,7 @@ export const cancelClassBooking = async (req, res) => {
             });
         }
 
-        //  Update Booking Status to "cancelled"
+        // Update Booking Status to "canceled"
         existingBooking.status = "canceled";
         await existingBooking.save();
 
@@ -178,13 +191,13 @@ export const cancelClassBooking = async (req, res) => {
         if (sendCancelNotificationResponse.success) {
             return res.status(200).json({
                 success: true,
-                message: 'Your class booking has been cancelled successfully., notification sent',
+                message: 'Your class booking has been cancelled successfully, notification sent.',
                 booking: existingBooking,
             });
         } else {
             return res.status(200).json({
                 success: true,
-                message: 'Your class booking has been cancelled successfully., but failed to send notification email',
+                message: 'Your class booking has been cancelled successfully, but failed to send notification email.',
                 booking: existingBooking,
             });
         }
@@ -196,6 +209,7 @@ export const cancelClassBooking = async (req, res) => {
         });
     }
 };
+
 
 export const sendNotificationEmail = async (selectedClass, newBooking) => {
     try {
