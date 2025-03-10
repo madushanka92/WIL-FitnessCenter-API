@@ -9,6 +9,13 @@ lerna-debug.log*
 
 node_modules
 *.local
+secret_key.js
+
+# Ignore everything inside the uploads folder
+uploads/*
+
+# But allow .gitkeep file
+!uploads/.gitkeep
 
 # Editor directories and files
 .vscode/*
