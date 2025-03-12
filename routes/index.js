@@ -16,6 +16,10 @@ import bloglikesRoutes from "./bloglikesRoutes.js";
 import blogcommentRoutes from "./blogcommentRoutes.js";
 import userRoutes from "./userRoutes.js";
 import classBookingRoutes from "./classBookingRoutes.js";
+import { isAdmin, requireSignIn } from "../middlewares/authMiddleware.js";
+import upload from "../middlewares/multerConfig.js";
+import path from "path";
+import fs from "fs";
 
 const router = express.Router();
 
@@ -44,5 +48,26 @@ router.use("/blogLikes", bloglikesRoutes);
 router.use("/blogComment", blogcommentRoutes);
 router.use("/user", userRoutes);
 router.use("/class-booking", classBookingRoutes);
+
+// Direct Image Uploader from Blog Post editor
+router.post('/upload-image', requireSignIn, isAdmin, upload.single('image'), (req, res) => {
+  const port = process.env.PORT || 3000;
+  const imageUrl = `http://localhost:${port}/uploads/${req.file.filename}`
+  res.json({ url: imageUrl })
+})
+
+router.delete('/delete-image', requireSignIn, isAdmin, (req, res) => {
+  const { url } = req.body
+  const imagePath = path.join(process.cwd(), url)
+
+  // Delete the image from the server
+  fs.unlink(imagePath, (err) => {
+    if (err) {
+      console.error('Error deleting image:', err)
+      return res.status(500).send('Error deleting image')
+    }
+    res.send('Image deleted successfully')
+  })
+})
 
 export default router;
