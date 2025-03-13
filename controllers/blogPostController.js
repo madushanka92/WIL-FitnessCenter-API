@@ -4,13 +4,16 @@ import JWT from "jsonwebtoken";
 import path from "path";
 import fs from "fs";
 import { newBlogPostNotificationEmail } from "../util/newBlogPostNotificationEmail.js";
+import BlogLike from "../models/BlogLike.js";
+import BlogComment from "../models/BlogComment.js";
+import { tokenDecoder } from "../helpers/decodeHelper.js";
 
 const router = Router();
 
 // Create a new Blog Post
 export const createBlogPost = async (req, res) => {
     try {
-        const { title, content, author } = req.body; 
+        const { title, content, author } = req.body;
         const files = req.files;
 
         let blog_image = undefined;
@@ -96,7 +99,44 @@ export const getBlogPostById = async (req, res) => {
             const port = process.env.PORT || 3000;
             blogPost.blog_image = blogPost.blog_image.map((image) => image = "http://localhost:" + port + image)
         }
-        res.json(blogPost);
+
+        const postId = req.params.id;
+        let user_id = null;
+        let isLiked = false;
+        let isDisliked = false;
+
+        // Check for authorization and extract user ID
+        const authHeader = req.headers.authorization;
+        if (authHeader) {
+            const { user_id: decodedUserId } = tokenDecoder(req);
+            user_id = decodedUserId;
+
+            // Check if the user has liked or disliked the post
+            const userLike = await BlogLike.findOne({ post_id: postId, user_id });
+
+            if (userLike) {
+                isLiked = userLike.like === true;
+                isDisliked = userLike.like === false;
+            }
+        }
+
+
+        // Get total likes and dislikes
+        const totalLikes = await BlogLike.countDocuments({ post_id: postId, like: true });
+        const totalDislikes = await BlogLike.countDocuments({ post_id: postId, like: false });
+
+        // Fetch comments and populate user details
+        const comments = await BlogComment.find({ post_id: postId })
+            .populate("user_id", "first_name last_name");
+
+        res.json({
+            ...blogPost.toObject(),
+            total_likes: totalLikes,
+            total_dislikes: totalDislikes,
+            isLiked,
+            isDisliked,
+            comments
+        });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
