@@ -69,7 +69,11 @@ const UserSchema = new Schema({
   reminders: {
     type: Boolean,
     default: true
-  }
+  },
+  membership_start_date: {
+    type: Date,
+    default: null, // Set when user subscribes
+  },
 });
 
 UserSchema.pre("save", function (next) {

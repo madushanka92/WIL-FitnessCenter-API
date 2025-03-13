@@ -1,4 +1,6 @@
+import { tokenDecoder } from "../helpers/decodeHelper.js";
 import Membership from "../models/Membership.js";
+import User from "../models/User.js";
 
 // Create a membership programme
 export const createMembership = async (req, res) => {
@@ -201,3 +203,40 @@ export const deleteMembership = async (req, res) => {
       .json({ success: false, message: "Server error", error: error.message });
   }
 };
+
+export const getUserMembershipInfo = async (req, res) => {
+  try {
+
+    // Extract and verify the JWT token
+    const authHeader = req.headers.authorization;
+    if (!authHeader) {
+      return res.status(401).json({ message: 'Authorization header missing' });
+    }
+    const { user_id } = tokenDecoder(req);
+
+    // Fetch the user and populate their membership
+    const user = await User.findById(user_id).populate('membership_id');
+
+    if (!user || !user.membership_id) {
+      return res.status(404).json({ message: 'User has no active membership' });
+    }
+
+    const membership = user.membership_id;
+
+    if (!user.membership_start_date) {
+      return res.status(400).json({ message: 'Membership start date is missing' });
+    }
+
+    // Calculate expiration date
+    const expirationDate = new Date(user.membership_start_date);
+    expirationDate.setDate(expirationDate.getDate() + membership.duration_days);
+
+    res.json({
+      membership_name: membership.membership_name,
+      expires_at: expirationDate.toISOString(),
+    });
+  } catch (error) {
+    console.error('Error fetching membership details:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+}

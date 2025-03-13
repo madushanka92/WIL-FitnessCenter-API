@@ -160,6 +160,7 @@ export const updateMembershipPayment = async (req, res) => {
 
         // Update user's membership
         user.membership_id = membership_id;
+        user.membership_start_date = new Date();
         await user.save();
 
 
