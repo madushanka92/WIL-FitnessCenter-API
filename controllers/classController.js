@@ -1,6 +1,8 @@
 import Class from "../models/Class.js";
 import Trainer from "../models/Trainer.js";
 import ClassBooking from "../models/ClassBooking.js"
+import { tokenDecoder } from "../helpers/decodeHelper.js";
+import moment from "moment";
 
 // Create a new class
 export const createClass = async (req, res) => {
@@ -53,17 +55,31 @@ export const createClass = async (req, res) => {
 // Fetch all classes with optional search query for class name or trainer name
 export const getAllClasses = async (req, res) => {
   try {
-    const { search } = req.query; // Get search query from request
+    const { search, start_time } = req.query; // Get search query from request
 
-    // Fetch classes matching class name
+    const { user_id } = tokenDecoder(req);
+
+    // Fetch user booked classes
+    const userBookedClass = await ClassBooking.find({ user_id: user_id, status: "booked" });
+    const bookedClassIds = userBookedClass.map((b) => b.class_id.toString());
+
+    // Search Query (By Class Name or Status)
     let classQuery = {};
     if (search) {
       classQuery.$or = [
-        { class_name: { $regex: search, $options: "i" } }, // Case-insensitive class name search
-        { status: { $regex: search, $options: "i" } } // Case-insensitive status search
+        { class_name: { $regex: search, $options: "i" } },
+        { status: { $regex: search, $options: "i" } }
       ];
     }
 
+    // Handle the start_time filter
+    if (start_time) {
+      const startDate = moment(start_time).startOf('day').toDate();
+      classQuery.start_time = { $gte: startDate }; // Filter classes starting on or after the date
+    }
+
+
+    // Fetch classes that match the search query
     const classMatches = await Class.find(classQuery).populate({
       path: "trainer_id",
       populate: {
@@ -73,8 +89,14 @@ export const getAllClasses = async (req, res) => {
       },
     });
 
-    // Fetch all classes (since trainer names are in User model)
-    const allClasses = await Class.find().populate({
+    let classAllQuery = {};
+    if (start_time) {
+      const startDate = moment(start_time).startOf('day').toDate();
+      classAllQuery.start_time = { $gte: startDate }; // Filter classes starting on or after the date
+    }
+
+    // Fetch all classes to filter by Trainer Name
+    const allClasses = await Class.find(classAllQuery).populate({
       path: "trainer_id",
       populate: {
         path: "user_id",
@@ -83,7 +105,7 @@ export const getAllClasses = async (req, res) => {
       },
     });
 
-    // Filter classes based on trainer name
+    // Filter classes based on Trainer Name
     const trainerMatches = allClasses.filter(
       (cls) =>
         cls.trainer_id?.user_id &&
@@ -92,7 +114,7 @@ export const getAllClasses = async (req, res) => {
           .includes(search?.toLowerCase() || "")
     );
 
-    // Merge results & remove duplicates
+    // Merge the results without duplicates
     const mergedResults = [
       ...classMatches,
       ...trainerMatches.filter(
@@ -100,16 +122,21 @@ export const getAllClasses = async (req, res) => {
       ),
     ];
 
-    // Format response
+    // Format the response & check if class is booked
     const formattedClasses = await Promise.all(
       mergedResults.map(async (cls) => {
         const classObj = cls.toObject();
 
-        // Get booked count for this class
-        const bookedCount = await ClassBooking.countDocuments({ class_id: cls._id });
+        // Get how many people booked this class
+        const bookedCount = await ClassBooking.countDocuments({ class_id: cls._id, status: "booked" });
         classObj.remaining_spots = Math.max(cls.max_capacity - bookedCount, 0);
 
-        // Rename trainer field for better readability
+        // Check if the user has already booked this class
+        if (bookedClassIds.includes(cls._id.toString())) {
+          classObj.user_status = 'booked';
+        }
+
+        // Rename trainer_id to trainer
         if (classObj.trainer_id?.user_id) {
           classObj.trainer_id.user = classObj.trainer_id.user_id;
           delete classObj.trainer_id.user_id;
@@ -147,7 +174,7 @@ export const getClassById = async (req, res) => {
     const classObj = classItem.toObject();
 
     // Get the number of bookings for this class
-    const bookedCount = await ClassBooking.countDocuments({ class_id: classItem._id });
+    const bookedCount = await ClassBooking.countDocuments({ class_id: classItem._id, status: "booked" });
 
     // Calculate remaining spots
     classObj.remaining_spots = Math.max(classItem.max_capacity - bookedCount, 0);

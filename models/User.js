@@ -66,6 +66,14 @@ const UserSchema = new Schema({
   },
   failedLoginAttempts: { type: Number, default: 0 },
   lockUntil: { type: Date, default: null }, // Lock user if exceeded attempts
+  reminders: {
+    type: Boolean,
+    default: true
+  },
+  membership_start_date: {
+    type: Date,
+    default: null, // Set when user subscribes
+  },
 });
 
 UserSchema.pre("save", function (next) {

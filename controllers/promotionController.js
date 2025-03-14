@@ -1,7 +1,6 @@
 import { faker } from '@faker-js/faker';
 import Promotion from "../models/Promotion.js";
-import PaymentPromotion from "../models/PaymentPromotion.js";
-
+import PaymentPromotion from '../models/PaymentPromotion.js';
 // Create a random promotion with admin-specified expiry and percentage
 export const createRandomPromotion = async (req, res) => {
   try {
@@ -41,7 +40,7 @@ export const getAllPromotions = async (req, res) => {
     const promotions = await Promotion.find();
     res.status(200).json({ success: true, promotions });
   } catch (error) {
-    res.status(500).json({ success: false, message: "Server error.", error });
+    res.status(500).json({ success: false, message: "An unexpected error occurred while applying the promotion. Please try again later.", error });
   }
 };
 
@@ -61,49 +60,92 @@ export const getPromotionById = async (req, res) => {
 // Update a promotion (Admin only)
 export const updatePromotion = async (req, res) => {
   try {
+    // Destructure data from request body
     const { promo_code, percentage, expiryDate, isActive } = req.body;
     const promotionId = req.params.id;
 
-    // Check if promotion is used in an ongoing checkout
-    const existingUsage = await PaymentPromotion.findOne({ promo_id: promotionId });
-    if (existingUsage) {
-      return res.status(400).json({ success: false, message: "This promotion is already applied in a checkout and cannot be modified." });
-    }
+    // Find the existing promotion
+    const promotion = await Promotion.findById(req.params.id);
 
-    // Proceed with update
-    const promotion = await Promotion.findByIdAndUpdate(promotionId, { promo_code, percentage, expiryDate, isActive }, { new: true });
     if (!promotion) {
       return res.status(404).json({ success: false, message: "Promotion not found." });
     }
 
-    res.status(200).json({ success: true, message: "Promotion updated successfully.", promotion });
+    // If percentage is being updated, check if it's being used in any payments
+    if (percentage !== undefined && percentage !== promotion.percentage) {
+      const promoPayments = await PaymentPromotion.countDocuments({ promo_id: promotion._id });
+
+      if (promoPayments > 0) {
+        return res.status(400).json({
+          success: false,
+          message: "Cannot update the promotion percentage, it is currently assigned to one or more payments."
+        });
+      }
+    }
+
+    // Update the promotion with the new data
+    promotion.promo_code = promo_code || promotion.promo_code;
+    promotion.percentage = percentage !== undefined ? percentage : promotion.percentage;
+    promotion.expiryDate = expiryDate || promotion.expiryDate;
+    promotion.isActive = isActive !== undefined ? isActive : promotion.isActive;
+
+    // Save the updated promotion
+    await promotion.save();
+
+    // Successfully updated promotion
+    res.status(200).json({
+      success: true,
+      message: "Promotion updated successfully.",
+      promotion
+    });
   } catch (error) {
-    res.status(500).json({ success: false, message: "Server error.", error });
+    console.error("Error updating promotion:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error. Please try again later.",
+      error: error.message || error
+    });
   }
 };
+
 
 // Delete a promotion (Admin only)
 export const deletePromotion = async (req, res) => {
   try {
-    const promotionId = req.params.id;
+    // Find the promotion by ID
+    const promotion = await Promotion.findById(req.params.id);
 
-    // Check if promo is already applied in an ongoing checkout
-    const usedPromo = await PaymentPromotion.findOne({ promo_id: promotionId });
-    if (usedPromo) {
-      return res.status(400).json({ success: false, message: "This promotion has been applied in a checkout and cannot be deleted." });
-    }
-
-    // Proceed with deletion
-    const promotion = await Promotion.findByIdAndDelete(promotionId);
     if (!promotion) {
       return res.status(404).json({ success: false, message: "Promotion not found." });
     }
 
-    res.status(200).json({ success: true, message: "Promotion deleted successfully." });
+    // Check if the promotion is used in any payments
+    const promoPayments = await PaymentPromotion.countDocuments({ promo_id: promotion._id });
+
+    if (promoPayments > 0) {
+      return res.status(400).json({
+        message: "Cannot delete the promotion, it is currently assigned to one or more payments."
+      });
+    }
+
+    // Proceed with deletion
+    await Promotion.findByIdAndDelete(req.params.id);
+
+    // Successfully deleted promotion
+    res.status(200).json({
+      success: true,
+      message: "Promotion deleted successfully."
+    });
   } catch (error) {
-    res.status(500).json({ success: false, message: "Server error.", error: error.message });
+    console.error("Error deleting promotion:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error. Please try again later.",
+      error: error.message || error
+    });
   }
 };
+
 
 // Apply a promotion promo_code
 export const applyPromotion = async (req, res) => {
@@ -116,7 +158,7 @@ export const applyPromotion = async (req, res) => {
     }
 
     if (new Date() > new Date(promotion.expiryDate)) {
-      return res.status(400).json({ success: false, message: "This promotion has expired." });
+      return res.status(400).json({ success: false, message: "This promotion code has been expired." });
     }
 
     res.status(200).json({ success: true, message: "Promotion applied successfully.", promotion: { promo_code: promotion.promo_code, percentage: promotion.percentage } });
