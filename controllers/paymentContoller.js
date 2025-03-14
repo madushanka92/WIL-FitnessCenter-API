@@ -204,3 +204,25 @@ export const sendInvoiceEmail = async (payment, user) => {
         return { success: false, message: 'Error generating/sending invoice', error };
     }
 };
+
+export const getPaymentsForUser = async (req, res) => {
+    try {
+        // Extract user ID from Authorization header
+        const authHeader = req.headers.authorization;
+        if (!authHeader) {
+            return res.status(401).json({ message: 'Authorization header missing' });
+        }
+
+        const token = authHeader.split(" ")[1];
+        const decoded = JWT.verify(token, process.env.JWT_SECRET);
+        const user_id = decoded._id;
+
+        // Fetch payments for the authenticated user
+        const payments = await Payment.find({ user_id }).populate('membership_id').populate("user_id", "first_name last_name");
+
+        res.status(200).json(payments);
+    } catch (error) {
+        console.error('Error fetching payments:', error);
+        res.status(500).json({ message: 'Internal server error' });
+    }
+}
