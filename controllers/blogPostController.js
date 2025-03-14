@@ -102,6 +102,35 @@ export const getBlogPostById = async (req, res) => {
     }
 };
 
+//Get a blog by Title
+export const getRelatedPosts = async (req, res) => {
+    try {
+        const  post_id  = req.params.id;
+
+        // Find the original post
+        const originalPost = await BlogPost.findOne({ _id: post_id });
+
+        if (!originalPost) {
+            return res.status(404).json({ message: "Post not found" });
+        }
+
+        const words = originalPost.title.split(" ").filter(word => word.length > 2); // Ignore short words if needed
+
+        const relatedPosts = await BlogPost.find({
+            _id: { $ne: originalPost._id },
+            $or: words.map(word => ({
+                title: { $regex: word, $options: "i" } // Case-insensitive partial match
+            }))
+        }).limit(5);
+
+        res.json({ relatedPosts });
+    } catch (error) {
+        res.status(500).json({ message: "Server Error", error: error.message });
+    }
+};
+
+
+
 // Update a Blog Post
 export const updateBlogPost = async (req, res) => {
     try {

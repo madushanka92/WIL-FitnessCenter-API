@@ -5,7 +5,8 @@ import {
     getAllBlogPosts,
     getBlogPostById,
     updateBlogPost,
-    deleteBlogPost
+    deleteBlogPost,
+    getRelatedPosts
 } from '../controllers/blogPostController.js';
 import upload from '../middlewares/multerConfig.js';
 
@@ -20,6 +21,8 @@ router.get('/', getAllBlogPosts);
 // Get a specific Blog Post by ID (Authenticated users)
 router.get('/:id', getBlogPostById);
 
+// Get related blog posts based on category/tags
+router.get('/related/:id', getRelatedPosts);
 // Update a Blog Post (Admin only)
 router.put('/:id', requireSignIn, isAdmin, upload.array("blog_images", 5), updateBlogPost);
 
