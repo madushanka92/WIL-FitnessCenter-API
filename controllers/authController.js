@@ -6,6 +6,7 @@ import dotenv from "dotenv";
 import SecretKeys from "../secret_key.js";
 import { sendEmail } from "../helpers/emailHelper.js";
 import UserRole from "../models/UserRole.js";
+import { isMembershipActive } from "../helpers/membershipHelper.js";
 
 dotenv.config();
 
@@ -201,8 +202,10 @@ export const loginController = async (req, res) => {
     user.lockUntil = null;
     await user.save();
 
+    const membershipActive = await isMembershipActive(user._id);
+
     // Generate JWT token
-    const token = JWT.sign({ _id: user._id, role: user.role_id?.role, membership_id: user?.membership_id }, process.env.JWT_SECRET, { expiresIn: "15m" });
+    const token = JWT.sign({ _id: user._id, role: user.role_id?.role, membership_id: membershipActive ? user?.membership_id : null }, process.env.JWT_SECRET, { expiresIn: "15m" });
     const refreshToken = JWT.sign({ _id: user._id, role: user.role_id?.role }, process.env.JWT_REFRESH_SECRET, { expiresIn: "7d" });
 
 
@@ -221,7 +224,8 @@ export const loginController = async (req, res) => {
         }
       },
       token,
-      refreshToken
+      refreshToken,
+      membershipActive
     });
   } catch (error) {
     console.error("Login Error:", error);
@@ -306,8 +310,10 @@ export const refreshTokenController = async (req, res) => {
           .json({ success: false, message: "User not found" });
       }
 
+      const membershipActive = await isMembershipActive(user._id);
+
       // Generate new Access Token
-      const newAccessToken = JWT.sign({ _id: decoded._id, role: decoded.role, membership_id: user?.membership_id }, process.env.JWT_SECRET, { expiresIn: "15m" });
+      const newAccessToken = JWT.sign({ _id: decoded._id, role: decoded.role, membership_id: membershipActive ? user?.membership_id : null }, process.env.JWT_SECRET, { expiresIn: "15m" });
 
       res.json({ success: true, token: newAccessToken });
     });
