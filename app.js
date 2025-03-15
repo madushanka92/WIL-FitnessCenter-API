@@ -7,6 +7,7 @@ import morgan from "morgan";
 import path from "path";
 import multer from "multer";
 import "./cronJobs/index.js";
+import "./config/redis.js";
 
 dotenv.config();
 //rest object
