@@ -34,3 +34,6 @@ redisClient.connect()
     .catch((err) => console.error("Redis Connection Error:", err));
 
 redisClient.on("error", (err) => console.error("Redis Error:", err));
+
+// Export Redis client so it can be used elsewhere
+export default redisClient;
