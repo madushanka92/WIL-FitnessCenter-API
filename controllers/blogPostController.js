@@ -60,6 +60,10 @@ export const createBlogPost = async (req, res) => {
         await newBlogPostNotificationEmail(newBlogPost);
 
         await newBlogPost.save();
+
+        // clear blog post cache
+        await redisClient.del(process.env.BLOG_CACHE_KEY);
+
         res.status(201).json({ success: true, blogPost: newBlogPost });
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -164,6 +168,9 @@ export const updateBlogPost = async (req, res) => {
             { new: true, runValidators: true }
         );
 
+        // clear blog post cache
+        await redisClient.del(process.env.BLOG_CACHE_KEY);
+
         res.status(200).json({ success: true, blogPost: updatedBlogPost });
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -190,6 +197,9 @@ export const deleteBlogPost = async (req, res) => {
 
         const deletedBlogPost = await BlogPost.findByIdAndDelete(req.params.id);
         if (!deletedBlogPost) return res.status(404).json({ message: "Blog Post not found" });
+
+        // clear blog post cache
+        await redisClient.del(process.env.BLOG_CACHE_KEY);
 
         res.json({ message: "Blog Post deleted successfully" });
     } catch (error) {

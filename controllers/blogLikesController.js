@@ -2,6 +2,7 @@ import { Router } from "express";
 import BlogLike from "../models/BlogLike.js";
 import JWT from "jsonwebtoken";
 import BlogPost from '../models/BlogPost.js';
+import redisClient from "../config/redis.js";
 
 const router = Router();
 
@@ -22,10 +23,10 @@ export const createBlogLike = async (req, res) => {
 
         // If the post exists
         const blogPost = await BlogPost.findById(post_id);
-        
-                if (!blogPost) {
-                    return res.status(404).json({ message: 'Post not found' });  // Post doesn't exist
-                }
+
+        if (!blogPost) {
+            return res.status(404).json({ message: 'Post not found' });  // Post doesn't exist
+        }
 
         // Check if the like already exists
         const existingLike = await BlogLike.findOne({ post_id, user_id });
@@ -35,6 +36,9 @@ export const createBlogLike = async (req, res) => {
 
         const newBlogLike = new BlogLike({ post_id, user_id, like });
         await newBlogLike.save();
+
+        // clear blog post cache
+        await redisClient.del(process.env.BLOG_CACHE_KEY);
 
         res.status(201).json({ success: true, blogLike: newBlogLike });
     } catch (error) {
@@ -78,6 +82,9 @@ export const removeBlogLike = async (req, res) => {
         if (!deletedLike) {
             return res.status(404).json({ message: "Like not found" });
         }
+
+        // clear blog post cache
+        await redisClient.del(process.env.BLOG_CACHE_KEY);
 
         res.json({ message: "Like removed successfully" });
     } catch (error) {
