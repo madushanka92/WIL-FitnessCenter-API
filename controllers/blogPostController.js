@@ -4,6 +4,9 @@ import path from "path";
 import fs from "fs";
 import { newBlogPostNotificationEmail } from "../util/newBlogPostNotificationEmail.js";
 import redisClient from "../config/redis.js"
+import BlogLike from "../models/BlogLike.js";
+import BlogComment from "../models/BlogComment.js";
+import { tokenDecoder } from "../helpers/decodeHelper.js";
 
 
 // Create a new Blog Post
@@ -111,11 +114,77 @@ export const getBlogPostById = async (req, res) => {
             const port = process.env.PORT || 3000;
             blogPost.blog_image = blogPost.blog_image.map((image) => image = "http://localhost:" + port + image)
         }
-        res.json(blogPost);
+
+        const postId = req.params.id;
+        let user_id = null;
+        let isLiked = false;
+        let isDisliked = false;
+
+        // Check for authorization and extract user ID
+        const authHeader = req.headers.authorization;
+        if (authHeader) {
+            const { user_id: decodedUserId } = tokenDecoder(req);
+            user_id = decodedUserId;
+
+            // Check if the user has liked or disliked the post
+            const userLike = await BlogLike.findOne({ post_id: postId, user_id });
+
+            if (userLike) {
+                isLiked = userLike.like === true;
+                isDisliked = userLike.like === false;
+            }
+        }
+
+
+        // Get total likes and dislikes
+        const totalLikes = await BlogLike.countDocuments({ post_id: postId, like: true });
+        const totalDislikes = await BlogLike.countDocuments({ post_id: postId, like: false });
+
+        // Fetch comments and populate user details
+        const comments = await BlogComment.find({ post_id: postId })
+            .populate("user_id", "first_name last_name");
+
+        res.json({
+            ...blogPost.toObject(),
+            total_likes: totalLikes,
+            total_dislikes: totalDislikes,
+            isLiked,
+            isDisliked,
+            comments
+        });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
 };
+
+//Get a blog by Title
+export const getRelatedPosts = async (req, res) => {
+    try {
+        const post_id = req.params.id;
+
+        // Find the original post
+        const originalPost = await BlogPost.findOne({ _id: post_id });
+
+        if (!originalPost) {
+            return res.status(404).json({ message: "Post not found" });
+        }
+
+        const words = originalPost.title.split(" ").filter(word => word.length > 2); // Ignore short words if needed
+
+        const relatedPosts = await BlogPost.find({
+            _id: { $ne: originalPost._id },
+            $or: words.map(word => ({
+                title: { $regex: word, $options: "i" } // Case-insensitive partial match
+            }))
+        }).limit(5);
+
+        res.json({ relatedPosts });
+    } catch (error) {
+        res.status(500).json({ message: "Server Error", error: error.message });
+    }
+};
+
+
 
 // Update a Blog Post
 export const updateBlogPost = async (req, res) => {

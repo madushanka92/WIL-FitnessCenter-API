@@ -21,30 +21,32 @@ export const createBlogLike = async (req, res) => {
         const decoded = JWT.verify(token, process.env.JWT_SECRET);
         const user_id = decoded._id;
 
-        // If the post exists
+        // Check if the post exists
         const blogPost = await BlogPost.findById(post_id);
-
         if (!blogPost) {
-            return res.status(404).json({ message: 'Post not found' });  // Post doesn't exist
+            return res.status(404).json({ message: 'Post not found' });
         }
 
-        // Check if the like already exists
-        const existingLike = await BlogLike.findOne({ post_id, user_id });
-        if (existingLike) {
-            return res.status(400).json({ message: "User already liked this post" });
+        // Check if the user has already liked/disliked the post
+        let blogLike = await BlogLike.findOne({ post_id, user_id });
+
+        if (blogLike) {
+            blogLike.like = like; // Update the existing like status
+        } else {
+            blogLike = new BlogLike({ post_id, user_id, like }); // Create a new like entry
         }
 
-        const newBlogLike = new BlogLike({ post_id, user_id, like });
-        await newBlogLike.save();
+        await blogLike.save(); // Save the updated or new like
 
         // clear blog post cache
         await redisClient.del(process.env.BLOG_CACHE_KEY);
 
-        res.status(201).json({ success: true, blogLike: newBlogLike });
+        res.status(201).json({ success: true, blogLike });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
 };
+
 
 // Get all Blog Likes
 export const getAllBlogLikes = async (req, res) => {
