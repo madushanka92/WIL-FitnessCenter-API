@@ -163,6 +163,12 @@ export const getRelatedPosts = async (req, res) => {
             }))
         }).limit(5);
 
+        relatedPosts.forEach((post) => {
+            const port = process.env.PORT || 3000;
+            post.blog_image = post.blog_image.map((image) => image = "http://localhost:" + port + image)
+      
+        })
+
         res.json({ relatedPosts });
     } catch (error) {
         res.status(500).json({ message: "Server Error", error: error.message });
