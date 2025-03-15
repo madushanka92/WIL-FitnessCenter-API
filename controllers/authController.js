@@ -7,6 +7,7 @@ import SecretKeys from "../secret_key.js";
 import { sendEmail } from "../helpers/emailHelper.js";
 import UserRole from "../models/UserRole.js";
 import { isMembershipActive } from "../helpers/membershipHelper.js";
+import { emailVerificationEmail } from "../util/emailVerificationEmail.js";
 
 dotenv.config();
 
@@ -70,8 +71,7 @@ export const registerController = async (req, res) => {
     await newUser.save();
 
     // Send verification email
-    const verificationLink = `${process.env.FRONTEND_URL}/verify-email/${verificationToken}`;
-    await sendEmail(email, "Verify Your Email", `Click the link to verify:\n\n${verificationLink}`);
+    await emailVerificationEmail(newUser);
 
     res.status(201).json({
       success: true,
@@ -172,6 +172,7 @@ export const loginController = async (req, res) => {
         .json({
           success: false,
           message: "Please verify your email before logging in",
+          isVerified: false
         });
     }
 
@@ -283,9 +284,8 @@ export const resendVerificationEmailController = async (req, res) => {
     user.verificationTokenExpires = Date.now() + 3600000;
     await user.save();
 
-    // Send verification email
-    const verificationLink = `${process.env.FRONTEND_URL}/verify-email/${newVerificationToken}`;
-    await sendEmail(user.email, "Resend: Verify Your Email", `Click the link to verify:\n\n${verificationLink}`);
+    // Send verification email 
+    await emailVerificationEmail(user, "Resend: Verify Your Email");
 
     res.status(200).json({ success: true, message: "New verification email sent." });
   } catch (error) {

@@ -11,6 +11,7 @@ export const tokenDecoder = (req) => {
 
     const user_id = decode._id;
     const membership_id = decode.membership_id;
+    const role = decode.role;
 
-    return { user_id, membership_id };
+    return { user_id, membership_id, role };
 }

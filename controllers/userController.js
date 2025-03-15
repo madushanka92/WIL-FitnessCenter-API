@@ -13,7 +13,7 @@ export const getAllUsers = async (req, res) => {
 
     // Fetch paginated users
     const users = await User.find()
-      .select("_id first_name last_name email phone_number") // Select specific fields
+      .select("_id first_name last_name email phone_number membership_id") // Select specific fields
       .populate({
         path: "role_id",
         select: "-_id role isActive", // Select role and isActive fields from UserRole
@@ -265,3 +265,31 @@ export const getUserById = async (req, res) => {
     res.status(500).json({ success: false, message: "Error fetching user" });
   }
 };
+
+
+export const getUserVerificationToken = async (req, res) => {
+  const { email } = req.params;
+
+  if (!email) {
+    return res.status(400).json({
+      success: false,
+      message: "Email is required.",
+    });
+  }
+
+  try {
+    // Find the user by email
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ success: false, message: "User not found." });
+    }
+
+    res.status(200).json({
+      success: true,
+      token: user.verificationToken,
+    });
+  } catch (error) {
+    console.error("Error fetching verification token:", error);
+    res.status(500).json({ success: false, message: "Error fetching verification token." });
+  }
+}

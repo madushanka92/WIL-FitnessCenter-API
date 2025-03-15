@@ -236,23 +236,31 @@ export const sendNotificationEmail = async (selectedClass, newBooking) => {
 
 export const getClassForUser = async (req, res) => {
     try {
-        const { user_id } = tokenDecoder(req);
-        // Fetch all bookings for the given user
-        const bookings = await ClassBooking.find({ user_id })
-            .populate({
-                path: "class_id",
-                populate: {
-                    path: "trainer_id",
-                    model: "Trainer",
+
+        let bookings = [];
+        const { user_id, role } = tokenDecoder(req);
+
+        if (role === 'trainer') {
+            bookings = await Class.find({ trainer_id: user_id });
+        }
+        else {
+            // Fetch all bookings for the given user
+            bookings = await ClassBooking.find({ user_id: user_id })
+                .populate({
+                    path: "class_id",
                     populate: {
-                        path: "user_id",
-                        model: "User"
-                    }
-                },
-            });
+                        path: "trainer_id",
+                        model: "Trainer",
+                        populate: {
+                            path: "user_id",
+                            model: "User"
+                        }
+                    },
+                });
+        }
 
         if (!bookings || bookings.length === 0) {
-            return { success: false, message: "No bookings found for this user." };
+            return res.status(500).json({ success: false, message: "No Class / Bookings Available." });
         }
 
         return res.status(200).json({
