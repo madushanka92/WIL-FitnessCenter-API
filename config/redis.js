@@ -1,5 +1,11 @@
 import { createClient } from "redis";
 import { exec } from "child_process";
+import path from "path";
+
+/**
+ * Directory where Redis should store `dump.rdb`
+ */
+const redisDataDir = path.resolve("redis_data"); // Change this path as needed
 
 /**
  * Starts the Redis server using the `redis-server` command.
@@ -7,7 +13,7 @@ import { exec } from "child_process";
  * Logs a message when the Redis server starts successfully.
  */
 const startRedisServer = () => {
-    exec("redis-server", (error, stdout, stderr) => {
+    exec(`redis-server --dir ${redisDataDir}`, (error, stdout, stderr) => {
         if (error) {
             console.error(`Redis Server Error: ${error.message}`);
             return;
