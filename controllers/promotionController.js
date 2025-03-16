@@ -9,17 +9,10 @@ export const createRandomPromotion = async (req, res) => {
 
     // Validate admin inputs
     if (!percentage || percentage < 1 || percentage > 100) {
-      return res.status(400).json({
-        success: false,
-        message: "Percentage must be between 1 and 100.",
-      });
+      return res.status(400).json({ success: false, message: "Percentage must be between 1 and 100." });
     }
-
     if (!expiryDate || isNaN(Date.parse(expiryDate))) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid expiry date format.",
-      });
+      return res.status(400).json({ success: false, message: "Invalid expiry date format." });
     }
 
     let promo_code;
@@ -27,14 +20,14 @@ export const createRandomPromotion = async (req, res) => {
 
     // Ensure promo_code is unique
     do {
-      promo_code = faker.string.alphanumeric(8).toUpperCase(); // Generate a random 8-character promo code
+      promo_code = faker.string.alphanumeric(8).toUpperCase();
       existingPromotion = await Promotion.findOne({ promo_code });
     } while (existingPromotion);
 
     // Create and save the promotion
     const promotion = new Promotion({ promo_code, percentage, expiryDate });
     await promotion.save();
-
+    
     // Pro is created -> send emails to all users where reminders is true
     await newPromoEmailHelper(promotion);
 
@@ -43,12 +36,9 @@ export const createRandomPromotion = async (req, res) => {
       message: "Random promotion created successfully.",
       promotion,
     });
+
   } catch (error) {
-    console.error("Error creating random promotion:", error);
-    res.status(500).json({
-      success: false,
-      message: "An error occurred while creating the random promotion.",
-    });
+    res.status(500).json({ success: false, message: "An error occurred while creating the promotion.", error });
   }
 };
 
@@ -80,6 +70,7 @@ export const updatePromotion = async (req, res) => {
   try {
     // Destructure data from request body
     const { promo_code, percentage, expiryDate, isActive } = req.body;
+    const promotionId = req.params.id;
 
     // Find the existing promotion
     const promotion = await Promotion.findById(req.params.id);
@@ -168,27 +159,17 @@ export const deletePromotion = async (req, res) => {
 export const applyPromotion = async (req, res) => {
   try {
     const { promo_code } = req.body;
-
-    // Find the promotion
     const promotion = await Promotion.findOne({ promo_code, isActive: true });
 
     if (!promotion) {
-      return res.status(404).json({ success: false, message: "Invalid or expired promotion code." });
+      return res.status(404).json({ success: false, message: "Invalid or expired promotion." });
     }
 
-    // Check if the promotion is expired
     if (new Date() > new Date(promotion.expiryDate)) {
       return res.status(400).json({ success: false, message: "This promotion code has been expired." });
     }
 
-    res.status(200).json({
-      success: true,
-      message: "Promotion applied successfully.",
-      promotion: {
-        promo_code: promotion.promo_code,
-        percentage: promotion.percentage,
-      },
-    });
+    res.status(200).json({ success: true, message: "Promotion applied successfully.", promotion: { promo_code: promotion.promo_code, percentage: promotion.percentage } });
   } catch (error) {
     res.status(500).json({ success: false, message: "Server error.", error });
   }
