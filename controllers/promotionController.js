@@ -1,6 +1,7 @@
 import { faker } from '@faker-js/faker';
 import Promotion from "../models/Promotion.js";
 import PaymentPromotion from '../models/PaymentPromotion.js';
+import { newPromoEmailHelper } from '../helpers/newPromoEmailHelper.js';
 // Create a random promotion with admin-specified expiry and percentage
 export const createRandomPromotion = async (req, res) => {
   try {
@@ -26,9 +27,16 @@ export const createRandomPromotion = async (req, res) => {
     // Create and save the promotion
     const promotion = new Promotion({ promo_code, percentage, expiryDate });
     await promotion.save();
-    // 
+    
+    // Pro is created -> send emails to all users where reminders is true
+    await newPromoEmailHelper(promotion);
 
-    res.status(201).json({ success: true, message: "Random promotion created successfully.", promotion });
+    res.status(201).json({
+      success: true,
+      message: "Random promotion created successfully.",
+      promotion,
+    });
+
   } catch (error) {
     res.status(500).json({ success: false, message: "An error occurred while creating the promotion.", error });
   }
