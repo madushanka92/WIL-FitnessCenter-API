@@ -2,6 +2,7 @@ import { Router } from "express";
 import BlogLike from "../models/BlogLike.js";
 import JWT from "jsonwebtoken";
 import BlogPost from '../models/BlogPost.js';
+import redisClient from "../config/redis.js";
 
 const router = Router();
 
@@ -36,6 +37,9 @@ export const createBlogLike = async (req, res) => {
         }
 
         await blogLike.save(); // Save the updated or new like
+
+        // clear blog post cache
+        await redisClient.del(process.env.BLOG_CACHE_KEY);
 
         res.status(201).json({ success: true, blogLike });
     } catch (error) {
@@ -80,6 +84,9 @@ export const removeBlogLike = async (req, res) => {
         if (!deletedLike) {
             return res.status(404).json({ message: "Like not found" });
         }
+
+        // clear blog post cache
+        await redisClient.del(process.env.BLOG_CACHE_KEY);
 
         res.json({ message: "Like removed successfully" });
     } catch (error) {

@@ -1,6 +1,7 @@
 import BlogComment from '../models/BlogComment.js';
 import JWT from 'jsonwebtoken';
 import BlogPost from '../models/BlogPost.js';
+import redisClient from '../config/redis.js';
 
 // Create a Blog Comment
 export const createBlogComment = async (req, res) => {
@@ -26,6 +27,9 @@ export const createBlogComment = async (req, res) => {
         const newBlogComment = new BlogComment({ post_id, user_id, comment_text });
         await newBlogComment.save();
 
+        // clear blog post cache
+        await redisClient.del(process.env.BLOG_CACHE_KEY);
+
         res.status(201).json({ success: true, blogComment: newBlogComment });
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -36,8 +40,8 @@ export const createBlogComment = async (req, res) => {
 export const getAllBlogComments = async (req, res) => {
     try {
         const blogComments = await BlogComment.find()
-                                              .populate("user_id", "first_name last_name")  // Populate user details
-                                              .populate("post_id", "title");  // Populate post title
+            .populate("user_id", "first_name last_name")  // Populate user details
+            .populate("post_id", "title");  // Populate post title
 
         if (!blogComments || blogComments.length === 0) {
             return res.status(404).json({ message: 'No comments found' });
@@ -101,6 +105,9 @@ export const updateBlogComment = async (req, res) => {
         comment.comment_text = comment_text;
         await comment.save();
 
+        // clear blog post cache
+        await redisClient.del(process.env.BLOG_CACHE_KEY);
+
         res.json({ success: true, updatedComment: comment });
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -124,6 +131,9 @@ export const deleteBlogComment = async (req, res) => {
             return res.status(404).json({ message: 'Comment not found or unauthorized' });
         }
 
+        // clear blog post cache
+        await redisClient.del(process.env.BLOG_CACHE_KEY);
+
         res.json({ message: 'Comment deleted successfully' });
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -133,7 +143,7 @@ export const deleteBlogComment = async (req, res) => {
 export default {
     createBlogComment,
     getCommentsByPostId,
-    getCommentById,  
+    getCommentById,
     updateBlogComment,
     deleteBlogComment,
 };

@@ -13,6 +13,7 @@ secret_key.js
 
 # Ignore everything inside the uploads folder
 uploads/*
+redis_data/*
 
 # But allow .gitkeep file
 !uploads/.gitkeep

@@ -1,14 +1,13 @@
-import { Router } from "express";
 import BlogPost from "../models/BlogPost.js";
 import JWT from "jsonwebtoken";
 import path from "path";
 import fs from "fs";
 import { newBlogPostNotificationEmail } from "../util/newBlogPostNotificationEmail.js";
+import redisClient from "../config/redis.js"
 import BlogLike from "../models/BlogLike.js";
 import BlogComment from "../models/BlogComment.js";
 import { tokenDecoder } from "../helpers/decodeHelper.js";
 
-const router = Router();
 
 // Create a new Blog Post
 export const createBlogPost = async (req, res) => {
@@ -64,6 +63,10 @@ export const createBlogPost = async (req, res) => {
         await newBlogPostNotificationEmail(newBlogPost);
 
         await newBlogPost.save();
+
+        // clear blog post cache
+        await redisClient.del(process.env.BLOG_CACHE_KEY);
+
         res.status(201).json({ success: true, blogPost: newBlogPost });
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -73,6 +76,14 @@ export const createBlogPost = async (req, res) => {
 // Get all Blog Posts
 export const getAllBlogPosts = async (req, res) => {
     try {
+        // Check if blog posts exist in Redis cache
+        const cachedData = await redisClient.get(process.env.BLOG_CACHE_KEY);
+        if (cachedData) {
+            console.log("Serving from Redis Cache");
+            return res.json(JSON.parse(cachedData)); // Return cached response
+        }
+
+        // Fetch from MongoDB if cache is empty
         const blogPosts = await BlogPost.find().populate("admin_id", "first_name last_name");
 
         const port = process.env.PORT || 3000;
@@ -84,6 +95,10 @@ export const getAllBlogPosts = async (req, res) => {
             }
         });
 
+        // Store the result in Redis (cache for 1 hour)
+        await redisClient.setEx(process.env.BLOG_CACHE_KEY, 3600, JSON.stringify(blogPosts));
+
+        console.log("Data Fetched from DB & Cached in Redis");
         res.json(blogPosts);
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -145,7 +160,7 @@ export const getBlogPostById = async (req, res) => {
 //Get a blog by Title
 export const getRelatedPosts = async (req, res) => {
     try {
-        const  post_id  = req.params.id;
+        const post_id = req.params.id;
 
         // Find the original post
         const originalPost = await BlogPost.findOne({ _id: post_id });
@@ -228,6 +243,9 @@ export const updateBlogPost = async (req, res) => {
             { new: true, runValidators: true }
         );
 
+        // clear blog post cache
+        await redisClient.del(process.env.BLOG_CACHE_KEY);
+
         res.status(200).json({ success: true, blogPost: updatedBlogPost });
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -255,10 +273,11 @@ export const deleteBlogPost = async (req, res) => {
         const deletedBlogPost = await BlogPost.findByIdAndDelete(req.params.id);
         if (!deletedBlogPost) return res.status(404).json({ message: "Blog Post not found" });
 
+        // clear blog post cache
+        await redisClient.del(process.env.BLOG_CACHE_KEY);
+
         res.json({ message: "Blog Post deleted successfully" });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
-};
-
-export default router;
+}; 
