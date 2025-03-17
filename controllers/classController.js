@@ -3,6 +3,7 @@ import Trainer from "../models/Trainer.js";
 import ClassBooking from "../models/ClassBooking.js"
 import { tokenDecoder } from "../helpers/decodeHelper.js";
 import moment from "moment";
+import { adminCancelClassEmail } from "../util/adminCancelClassEmail.js";
 
 // Create a new class
 export const createClass = async (req, res) => {
@@ -362,4 +363,63 @@ export const getUpcomingAvailableClasses = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
+export const cancelClass = async (req, res) => {
+  try {
+    const { class_id } = req.body;
+
+    // Check If Class Exists
+    const selectedClass = await Class.findById(class_id).populate({
+      path: "trainer_id",
+      populate: {
+        path: "user_id",
+        model: "User",
+        select: "first_name last_name email phone_number",
+      },
+    });
+
+    if (!selectedClass) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Class not found." });
+    }
+
+    // Update Class Status to "canceled"
+    selectedClass.status = "canceled";
+    await selectedClass.save();
+
+    // Find all booked class slots for this class
+    const bookedSlots = await ClassBooking.find({ class_id: selectedClass._id });
+    if (bookedSlots && bookedSlots.length > 0) {
+      for (const cls of bookedSlots) {
+        cls.status = 'canceled';
+        await cls.save();
+
+      }
+    }
+
+
+    // Send Cancellation Notification Email
+    const sendCancelNotificationResponse = await adminCancelClassEmail(selectedClass);
+    if (sendCancelNotificationResponse.success) {
+      return res.status(200).json({
+        success: true,
+        message: 'Class / Bookings has been cancelled successfully, notifications sent.',
+        class: selectedClass,
+      });
+    } else {
+      return res.status(200).json({
+        success: true,
+        message: 'Class / Bookings has been cancelled successfully, but failed to send notification email.',
+        class: selectedClass,
+      });
+    }
+
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+}
 
