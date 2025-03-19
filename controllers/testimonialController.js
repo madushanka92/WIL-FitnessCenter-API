@@ -2,13 +2,12 @@ import Testimonial from "../models/Testimonial.js";
 import User from "../models/User.js";
 
 /**
- * Add a Testimonial
- * Allows a user to submit a testimonial.
+ * ✅ Add a Testimonial (Only for Authenticated Users)
  */
 export const addTestimonialController = async (req, res) => {
   try {
     const { title, content, rating } = req.body;
-    const userId = req.user._id; // Assuming user ID is available from auth middleware
+    const userId = req.user._id; // Extract user ID from `requireSignIn` middleware
 
     if (!title || !content || !rating) {
       return res
@@ -30,6 +29,7 @@ export const addTestimonialController = async (req, res) => {
       title,
       content,
       rating,
+      isApproved: false, // Default: Pending approval
     });
 
     await newTestimonial.save();
@@ -48,37 +48,32 @@ export const addTestimonialController = async (req, res) => {
 };
 
 /**
- * Get Testimonials
- * Fetches testimonials with user name, rating, title, and content.
+ * ✅ Get Only the Logged-in User's Testimonials
  */
-/* 
-export const getTestimonialsController = async (req, res) => {
+export const getUserTestimonialsController = async (req, res) => {
   try {
-    const testimonials = await Testimonial.find()
-      .populate("user", "first_name last_name") // Populate user's name
-      .select("title content rating user"); // Select only required fields
+    const userId = req.user._id; // Extract user ID from `requireSignIn`
 
-    res.status(200).json({
-      success: true,
-      testimonials: testimonials.map((testimonial) => ({
-        title: testimonial.title,
-        content: testimonial.content,
-        rating: testimonial.rating,
-        user: {
-          first_name: testimonial.user.first_name,
-          last_name: testimonial.user.last_name,
-        },
-      })),
-    });
+    const testimonials = await Testimonial.find({ user: userId }) // Fetch only the user's testimonials
+      .select("title content rating createdAt isApproved")
+      .sort({ createdAt: -1 });
+
+    res.status(200).json({ success: true, testimonials });
   } catch (error) {
-    console.error("Error fetching testimonials:", error);
+    console.error("Error fetching user testimonials:", error);
     res
       .status(500)
-      .json({ success: false, message: "Error fetching testimonials", error });
+      .json({
+        success: false,
+        message: "Error fetching user testimonials",
+        error,
+      });
   }
 };
-*/
 
+/**
+ * ✅ Get All Approved Testimonials (Public API)
+ */
 export const getTestimonialsController = async (req, res) => {
   try {
     const testimonials = await Testimonial.find({ isApproved: true }) // Fetch only approved testimonials
