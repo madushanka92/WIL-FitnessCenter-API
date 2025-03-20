@@ -20,6 +20,7 @@ import { isAdmin, requireSignIn } from "../middlewares/authMiddleware.js";
 import upload from "../middlewares/multerConfig.js";
 import path from "path";
 import fs from "fs";
+import statsRoute from "./statsRoutes.js";
 
 const router = express.Router();
 
@@ -48,6 +49,7 @@ router.use("/blogLikes", bloglikesRoutes);
 router.use("/blogComment", blogcommentRoutes);
 router.use("/user", userRoutes);
 router.use("/class-booking", classBookingRoutes);
+router.use("/dashboard", statsRoute);
 
 // Direct Image Uploader from Blog Post editor
 router.post('/upload-image', requireSignIn, isAdmin, upload.single('image'), (req, res) => {

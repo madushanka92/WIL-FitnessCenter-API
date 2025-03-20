@@ -1,5 +1,6 @@
 import { tokenDecoder } from "../helpers/decodeHelper.js";
 import Membership from "../models/Membership.js";
+import Payment from "../models/Payment.js";
 import User from "../models/User.js";
 
 // Create a membership programme
@@ -109,6 +110,11 @@ export const updateMembership = async (req, res) => {
       max_classes_per_week,
     } = req.body;
 
+    const membership = await Membership.findById(id)
+    if (!membership) {
+      return res.status(404).json({ message: 'Membership not found' })
+    }
+
     // Validate input
     if (membership_name && typeof membership_name !== "string") {
       return res
@@ -140,6 +146,14 @@ export const updateMembership = async (req, res) => {
           success: false,
           message: "Invalid max classes per week value",
         });
+    }
+
+    // Check if price is being updated
+    if (price !== undefined && membership.price !== price) {
+      const existingPayments = await Payment.find({ membership_id: id })
+      if (existingPayments.length > 0) {
+        return res.status(400).json({ message: 'Cannot update price. Membership is being used in payments.' })
+      }
     }
 
     // Normalize membership name
@@ -185,17 +199,20 @@ export const deleteMembership = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const deletedMembership = await Membership.findByIdAndDelete(id);
-
-    if (!deletedMembership) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Membership not found" });
+    const membership = await Membership.findById(id)
+    if (!membership) {
+      return res.status(404).json({ message: 'Membership not found' })
     }
 
-    res
-      .status(200)
-      .json({ success: true, message: "Membership deleted successfully" });
+    // Check if membership is used in any payments
+    const existingPayments = await Payment.find({ membership_id: id })
+    if (existingPayments.length > 0) {
+      return res.status(400).json({ message: 'Cannot delete membership. It is associated with existing payments.' })
+    }
+
+    // Proceed with delete
+    await Membership.findByIdAndDelete(id)
+    res.status(200).json({ message: 'Membership deleted successfully' })
   } catch (error) {
     console.error("Error deleting membership:", error);
     res
